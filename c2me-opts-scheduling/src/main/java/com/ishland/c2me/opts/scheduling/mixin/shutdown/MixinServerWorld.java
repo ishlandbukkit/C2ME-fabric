@@ -29,8 +29,8 @@ public class MixinServerWorld {
     private void replaceEntityFlushLogic(ProgressListener progressListener, boolean flush, boolean savingDisabled, CallbackInfo ci) {
         while (!((ITryFlushable) this.entityManager).c2me$tryFlush()) {
             this.server.runTask();
-            this.chunkManager.executeQueuedTasks();
-            LockSupport.parkNanos("waiting for completion", 10_000_000);
+            while (this.chunkManager.executeQueuedTasks());
+            LockSupport.parkNanos("waiting for completion", 1_000_000);
         }
     }
 
