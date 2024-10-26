@@ -13,7 +13,4 @@ public interface IServerLightingProvider {
     @Invoker
     void invokeUpdateChunkStatus(ChunkPos pos);
 
-    @Invoker
-    void invokeEnqueue(int x, int z, IntSupplier completedLevelSupplier, ServerLightingProvider.Stage stage, Runnable task);
-
 }

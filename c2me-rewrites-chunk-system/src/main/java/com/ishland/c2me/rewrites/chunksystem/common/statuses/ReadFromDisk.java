@@ -202,16 +202,11 @@ public class ReadFromDisk extends NewChunkStatus {
         }
     }
 
-    protected CompletionStage<Void> syncWithLightEngine(ChunkLoadingContext context) {
-        final CompletableFuture<Void> future = new CompletableFuture<>();
-        ((IServerLightingProvider) ((IThreadedAnvilChunkStorage) context.tacs()).getLightingProvider()).invokeEnqueue(
+    protected CompletionStage<?> syncWithLightEngine(ChunkLoadingContext context) {
+        return ((IThreadedAnvilChunkStorage) context.tacs()).getLightingProvider().enqueue(
                 context.holder().getKey().x,
-                context.holder().getKey().z,
-                () -> 0,
-                ServerLightingProvider.Stage.POST_UPDATE,
-                () -> future.complete(null)
+                context.holder().getKey().z
         );
-        return future;
     }
 
     @Override
