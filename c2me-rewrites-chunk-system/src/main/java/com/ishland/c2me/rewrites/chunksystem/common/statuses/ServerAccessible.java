@@ -68,7 +68,7 @@ public class ServerAccessible extends NewChunkStatus {
                 worldChunk.updateAllBlockEntities();
                 worldChunk.addChunkTickSchedulers(serverWorld);
                 if (ModStatuses.fabric_lifecycle_events_v1) {
-                    LifecycleEventInvoker.invokeChunkLoaded(serverWorld, worldChunk);
+                    LifecycleEventInvoker.invokeChunkLoaded(serverWorld, worldChunk, !(protoChunk instanceof WrapperProtoChunk));
                 }
             }
 
