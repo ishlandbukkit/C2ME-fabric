@@ -36,6 +36,7 @@
   },
   "breaks": {
     "tic_tacs": "*",
-    "optifabric": "*"
+    "optifabric": "*",
+    "fabric-api": "<0.107.0"
   }
 }
