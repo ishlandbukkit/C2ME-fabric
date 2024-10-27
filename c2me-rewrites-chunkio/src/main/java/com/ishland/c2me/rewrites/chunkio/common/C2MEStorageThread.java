@@ -181,6 +181,15 @@ public class C2MEStorageThread extends Thread {
         return future;
     }
 
+    public CompletableFuture<Void> setChunkDataRaw(long pos, CompletionStage<byte[]> dataFuture) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        this.executor.execute(() -> {
+            this.write0(pos, dataFuture.thenApply(data -> data != null ? Either.right(data) : null));
+            future.complete(null);
+        });
+        return future;
+    }
+
     public CompletableFuture<Void> flush(boolean sync) {
         return CompletableFuture.runAsync(() -> flush0(sync), this.executor);
     }

@@ -18,6 +18,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.ConcurrentModificationException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Mixin(ServerChunkLoadingManager.class)
 public abstract class MixinThreadedAnvilChunkStorage implements IThreadedAnvilChunkStorage {
@@ -32,8 +33,12 @@ public abstract class MixinThreadedAnvilChunkStorage implements IThreadedAnvilCh
 
     @Shadow protected abstract boolean save(ChunkHolder chunkHolder, long currentTime);
 
+    @Shadow @Final private AtomicInteger chunksBeingSavedCount;
     @Unique
-    private static final int c2me$maxSearchPerCall = 128;
+    private static final int c2me$maxSearchPerCall = 256;
+
+    @Unique
+    private static final int c2me$maxConcurrentSaving = 256;
 
     @Unique
     private ObjectBidirectionalIterator<Long2ObjectMap.Entry<ChunkHolder>> c2me$saveChunksIterator;
@@ -65,7 +70,7 @@ public abstract class MixinThreadedAnvilChunkStorage implements IThreadedAnvilCh
         long measuringTimeMs = Util.getMeasuringTimeMs();
         int i = 0;
         final ObjectBidirectionalIterator<Long2ObjectMap.Entry<ChunkHolder>> iterator = this.c2me$saveChunksIterator;
-        while (iterator.hasNext() && (i ++) < c2me$maxSearchPerCall) {
+        while (iterator.hasNext() && (i ++) < c2me$maxSearchPerCall && this.chunksBeingSavedCount.get() < c2me$maxConcurrentSaving) {
             final Long2ObjectMap.Entry<ChunkHolder> entry = iterator.next();
             final long pos = entry.getLongKey();
             final ChunkHolder chunkHolder = entry.getValue();

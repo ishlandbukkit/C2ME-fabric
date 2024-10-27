@@ -94,17 +94,19 @@ public abstract class MixinThreadedAnvilChunkStorage extends VersionedChunkStora
             SerializedChunk chunkSerializer = SerializedChunk.fromChunk(this.world, chunk);
             //region start replaced code
             // NbtCompound nbtCompound = ChunkSerializer.serialize(this.world, chunk);
-            CompletableFuture<Void> saveFuture = CompletableFuture.supplyAsync(() -> {
+            CompletableFuture<byte[]> serializationFuture = CompletableFuture.supplyAsync(() -> {
                 NbtWriter nbtWriter = new NbtWriter();
-                nbtWriter.start(NbtElement.COMPOUND_TYPE);
-                ChunkDataSerializer.write(chunkSerializer, nbtWriter);
-                nbtWriter.finishCompound();
+                try {
+                    nbtWriter.start(NbtElement.COMPOUND_TYPE);
+                    ChunkDataSerializer.write(chunkSerializer, nbtWriter);
+                    nbtWriter.finishCompound();
+                    return nbtWriter.toByteArray();
+                } finally {
+                    nbtWriter.release();
+                }
+            }, ((IVanillaChunkManager) this).c2me$getSchedulingManager().positionedExecutor(chunk.getPos().toLong()));
 
-                // this.setNbt(chunkPos, nbtCompound);
-                CompletableFuture<Void> future = ((IDirectStorage) ((IVersionedChunkStorage) this).getWorker()).setRawChunkData(chunkPos, nbtWriter.toByteArray());
-                nbtWriter.release();
-                return future;
-            }, ((IVanillaChunkManager) this).c2me$getSchedulingManager().positionedExecutor(chunk.getPos().toLong())).thenCompose(Function.identity());
+            CompletableFuture<Void> saveFuture = ((IDirectStorage) ((IVersionedChunkStorage) this).getWorker()).setRawChunkData(chunkPos, serializationFuture);
 
             saveFuture.handle((void_, exceptionx) -> {
                 if (exceptionx != null) {
@@ -114,12 +116,6 @@ public abstract class MixinThreadedAnvilChunkStorage extends VersionedChunkStora
                 this.chunksBeingSavedCount.decrementAndGet();
                 return null;
             });
-
-            ChunkHolder holder = this.getCurrentChunkHolder(chunk.getPos().toLong());
-            if (holder != null) {
-                ((IChunkHolder) holder).invokeCombineSavingFuture(saveFuture);
-            }
-
             //endregion end replaced code
 
             this.mark(chunkPos, chunkStatus.getChunkType());

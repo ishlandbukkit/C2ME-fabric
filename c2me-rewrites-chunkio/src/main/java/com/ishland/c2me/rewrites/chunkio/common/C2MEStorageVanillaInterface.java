@@ -40,6 +40,11 @@ public class C2MEStorageVanillaInterface extends StorageIoWorker implements IDir
     }
 
     @Override
+    public CompletableFuture<Void> setRawChunkData(ChunkPos pos, CompletableFuture<byte[]> data) {
+        return this.backend.setChunkDataRaw(pos.toLong(), data);
+    }
+
+    @Override
     public CompletableFuture<Void> completeAll(boolean sync) {
         return this.backend.flush(true);
     }
