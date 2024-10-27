@@ -246,7 +246,14 @@ public class C2MEStorageThread extends Thread {
             if (cachedFuture == null) {
                 future.complete(null);
             } else {
-                cachedFuture.thenAccept(cached -> { // mirror vanilla behavior: get the immediate result rather than latest
+                cachedFuture.whenComplete((cached, throwable) -> { // mirror vanilla behavior: get the immediate result rather than latest
+                    if (throwable != null) {
+                        this.executor.execute(() -> {
+                            LOGGER.warn("Retrying read of chunk {} because previous write to chunk threw an exception", new ChunkPos(pos));
+                            this.read0(pos, future, scanner);
+                        }); // retry
+                        return;
+                    }
                     if (cached == null) {
                         future.complete(null);
                     } else if (cached.left().isPresent()) {
@@ -279,8 +286,8 @@ public class C2MEStorageThread extends Thread {
                                     }
                                 }, GlobalExecutors.prioritizedScheduler.executor(16))
                                 .thenAccept(future::complete)
-                                .exceptionally(throwable -> {
-                                    future.completeExceptionally(throwable);
+                                .exceptionally(throwable1 -> {
+                                    future.completeExceptionally(throwable1);
                                     return null;
                                 });
                     }
