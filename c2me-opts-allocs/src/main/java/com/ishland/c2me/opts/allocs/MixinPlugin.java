@@ -1,7 +1,6 @@
 package com.ishland.c2me.opts.allocs;
 
 import com.ishland.c2me.base.common.ModuleMixinPlugin;
-import com.ishland.c2me.opts.allocs.asm.ASMTransformerNbtOpsMapBuilderFastUtilMap;
 import net.fabricmc.loader.api.FabricLoader;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
@@ -27,7 +26,6 @@ public class MixinPlugin extends ModuleMixinPlugin {
     @Override
     public void preApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {
         super.preApply(targetClassName, targetClass, mixinClassName, mixinInfo);
-        ASMTransformerNbtOpsMapBuilderFastUtilMap.transform(targetClass);
     }
 
 }

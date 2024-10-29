@@ -4,7 +4,6 @@
   "package": "com.ishland.c2me.opts.chunk_access.mixin",
   "plugin": "com.ishland.c2me.opts.chunk_access.MixinPlugin",
   "mixins": [
-    "asm.ASMTargets",
     "region_capture.MixinChunkGenerationStep"
   ]
 }

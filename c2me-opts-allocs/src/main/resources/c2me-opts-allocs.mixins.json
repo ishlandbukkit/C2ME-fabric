@@ -9,7 +9,6 @@
     "MixinNbtCompound1",
     "MixinNbtList",
     "MixinUtil",
-    "asm.ASMTargets",
     "object_pooling_caching.MixinConfiguredFeature",
     "object_pooling_caching.MixinOreFeature",
     "surfacebuilder.MixinMaterialRuleContext",

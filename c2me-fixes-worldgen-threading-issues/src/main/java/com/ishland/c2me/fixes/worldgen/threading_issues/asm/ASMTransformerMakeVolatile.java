@@ -1,6 +1,5 @@
 package com.ishland.c2me.fixes.worldgen.threading_issues.asm;
 
-import com.ishland.c2me.base.common.util.ASMUtils;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
@@ -8,10 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ASMTransformerMakeVolatile {
