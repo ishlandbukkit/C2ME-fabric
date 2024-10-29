@@ -54,17 +54,8 @@ public abstract class MixinServerChunkManager implements ISyncLoadManager {
         syncLoadNanos = System.nanoTime();
         ((IVanillaChunkManager) this.chunkLoadingManager).c2me$getSchedulingManager().setCurrentSyncLoad(this.currentSyncLoadChunk);
         instance.runTasks(supplier);
-    }
-
-    @Inject(method = "getChunk(IILnet/minecraft/world/chunk/ChunkStatus;Z)Lnet/minecraft/world/chunk/Chunk;", at = @At("RETURN"))
-    private void afterGetChunk(int x, int z, ChunkStatus leastStatus, boolean create, CallbackInfoReturnable<Chunk> cir) {
-        if (Thread.currentThread() != this.serverThread) return;
-
-        if (this.currentSyncLoadChunk != null) {
-            this.currentSyncLoadChunk = null;
-//            System.out.println("Sync load took %.2fms".formatted((System.nanoTime() - syncLoadNanos) / 1e6));
-            ((IVanillaChunkManager) this.chunkLoadingManager).c2me$getSchedulingManager().setCurrentSyncLoad(null);
-        }
+        ((IVanillaChunkManager) this.chunkLoadingManager).c2me$getSchedulingManager().setCurrentSyncLoad(null);
+        this.currentSyncLoadChunk = null;
     }
 
     @Override
