@@ -3,7 +3,6 @@ package com.ishland.c2me.rewrites.chunkio.mixin;
 import com.ishland.c2me.rewrites.chunkio.common.C2MEStorageVanillaInterface;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.thread.PrioritizedConsecutiveExecutor;
-import net.minecraft.util.thread.TaskQueue;
 import net.minecraft.world.storage.RegionBasedStorage;
 import net.minecraft.world.storage.StorageIoWorker;
 import org.spongepowered.asm.mixin.Final;
@@ -14,7 +13,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.Map;
 import java.util.SequencedMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -31,7 +29,7 @@ public class MixinStorageIoWorker {
     @Shadow @Final private AtomicBoolean closed;
 
     @Mutable
-    @Shadow @Final private PrioritizedConsecutiveExecutor field_54149;
+    @Shadow @Final private PrioritizedConsecutiveExecutor executor;
 
     @SuppressWarnings("ConstantConditions")
     @Inject(method = "<init>", at = @At("RETURN"))
@@ -41,7 +39,7 @@ public class MixinStorageIoWorker {
             this.results = null;
             this.storage = null;
             this.closed = null;
-            this.field_54149 = null;
+            this.executor = null;
         }
     }
 

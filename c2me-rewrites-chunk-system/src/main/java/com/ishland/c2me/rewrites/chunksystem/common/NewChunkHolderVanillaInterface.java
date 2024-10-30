@@ -211,6 +211,11 @@ public class NewChunkHolderVanillaInterface extends ChunkHolder implements IFast
     }
 
     @Override
+    public boolean hasPendingUpdates() {
+        return super.hasPendingUpdates(); // use vanilla impl
+    }
+
+    @Override
     public void combinePostProcessingFuture(CompletableFuture<?> postProcessingFuture) {
         super.combinePostProcessingFuture(postProcessingFuture); // use vanilla impl
     }

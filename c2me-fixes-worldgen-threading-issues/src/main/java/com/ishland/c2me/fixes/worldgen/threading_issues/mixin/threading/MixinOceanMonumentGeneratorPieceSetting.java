@@ -12,9 +12,9 @@ public class MixinOceanMonumentGeneratorPieceSetting {
     @Shadow private boolean used;
 
     @MakeVolatile
-    @Shadow private boolean field_14484;
+    @Shadow private boolean entrance;
 
     @MakeVolatile
-    @Shadow private int field_14483;
+    @Shadow private int entranceDistance;
 
 }
