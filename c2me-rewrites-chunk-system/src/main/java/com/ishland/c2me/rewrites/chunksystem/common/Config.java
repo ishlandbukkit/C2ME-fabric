@@ -44,6 +44,20 @@ public class Config {
                     """)
             .getBoolean(true, false);
 
+    public static final boolean syncPlayerTickets = new ConfigSystem.ConfigAccessor()
+            .key("chunkSystem.syncPlayerTickets")
+            .comment("""
+                    Whether to synchronize the management of player tickets
+                    
+                    In vanilla Minecraft, player tickets are not always removed immediately when players leave an area.
+                    The delay in removal increases with the chunk system’s throughput, but due to vanilla’s typically
+                    slow chunk loading, tickets are almost always removed immediately. However, some contraptions rely
+                    on this immediate removal behavior and tend to be broken with the increased chunk throughput.
+                    Enabling this option synchronizes player ticket handling, making it more predictable and
+                    thus improving compatibility with these contraptions.
+                    """)
+            .getBoolean(true, false);
+
     public static void init() {
         // intentionally empty
     }
