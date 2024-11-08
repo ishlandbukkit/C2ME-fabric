@@ -36,20 +36,64 @@ public abstract class MixinServerChunkManager {
     @Shadow
     protected abstract @Nullable ChunkHolder getChunkHolder(long pos);
 
+    @Shadow @Final private long[] chunkPosCache;
+
+    @Shadow @Final private ChunkStatus[] chunkStatusCache;
+
+    @Shadow @Final private Chunk[] chunkCache;
+
     @Inject(method = "getChunk(IILnet/minecraft/world/chunk/ChunkStatus;Z)Lnet/minecraft/world/chunk/Chunk;", at = @At("HEAD"), cancellable = true)
     private void shortcutGetChunk(int x, int z, ChunkStatus leastStatus, boolean create, CallbackInfoReturnable<Chunk> cir) {
         if (Thread.currentThread() != this.serverThread) {
-            final ChunkHolder holder = this.getChunkHolder(ChunkPos.toLong(x, z));
-            if (holder != null) {
-                final CompletableFuture<OptionalChunk<Chunk>> future = holder.load(leastStatus, this.chunkLoadingManager); // thread-safe in new system
-                Chunk chunk = future.getNow(ChunkHolder.UNLOADED).orElse(null);
-                if (chunk instanceof WrapperProtoChunk readOnlyChunk) chunk = readOnlyChunk.getWrappedChunk();
+            Chunk chunk = this.c2me$fastpathExistingChunks(x, z, leastStatus);
+            if (chunk != null) {
+                cir.setReturnValue(chunk);
+                return;
+            } else if (!create) {
+                cir.setReturnValue(null);
+                return;
+            }
+        } else { // on server thread
+            if (!create) { // no create required
+                Chunk chunk = this.c2me$getFromCahe(x, z, leastStatus, false);
                 if (chunk != null) {
-                    cir.setReturnValue(chunk); // also cancels
-                    return;
+                    cir.setReturnValue(chunk);
+                } else {
+                    cir.setReturnValue(this.c2me$fastpathExistingChunks(x, z, leastStatus));
+                }
+                return;
+            }
+        }
+    }
+
+    @Unique
+    private Chunk c2me$getFromCahe(int x, int z, ChunkStatus leastStatus, boolean create) {
+        long l = ChunkPos.toLong(x, z);
+
+        if (this.chunkPosCache == null || this.chunkStatusCache == null || this.chunkCache == null) {
+            return null; // no cache
+        }
+
+        for (int i = 0; i < 4; i++) {
+            if (l == this.chunkPosCache[i] && leastStatus == this.chunkStatusCache[i]) {
+                Chunk chunk = this.chunkCache[i];
+                if (chunk != null || !create) {
+                    return chunk;
                 }
             }
         }
+
+        return null;
+    }
+
+    @Unique
+    private Chunk c2me$fastpathExistingChunks(int x, int z, ChunkStatus leastStatus) {
+        final ChunkHolder holder = this.getChunkHolder(ChunkPos.toLong(x, z));
+        if (holder != null) {
+            final CompletableFuture<OptionalChunk<Chunk>> future = holder.load(leastStatus, this.chunkLoadingManager); // thread-safe in new system
+            return future.getNow(ChunkHolder.UNLOADED).orElse(null);
+        }
+        return null;
     }
 
     @Inject(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/world/ServerChunkManager;updateChunks()Z", shift = At.Shift.AFTER))
