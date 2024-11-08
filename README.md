@@ -14,14 +14,33 @@ C^2M-Engine, or C2ME for short, is a Fabric mod designed to improve the performa
 ## What does C2ME stand for?
 Concurrent chunk management engine, it's about making the game better threaded and more scalable in regard to world gen and chunk io performance.
 
-## So what is C2ME not?
-**C2ME is currently in alpha stage and pretty experimental.**  
-Although it is usable in most cases and tested during build time, it doesn't mean that it is fully stable for a production server.  
-So backup your worlds and practice good game modding skills.
+## Vanilla parity
+C2ME does not sacrifice vanilla functionality or behavior, or alter the vanilla world generation in the name of raw speed by default.
+However, due to the [non-determinism of vanilla world generation](https://bugs.mojang.com/browse/MC-55596), worlds will vary
+significantly run-to-run even with the same seed. This is not a bug on our side. 
+
+While we carefully check that we do not modify any vanilla behavior, bugs are unavoidable after all. 
+So, if you do encounter an issue where C2ME deviates from the intended vanilla behavior, don't hesitate to open an issue.
+
+## Mod and Datapack compatibility
+World generation datapacks that can run on vanilla Minecraft are fully supported.  
+Custom world generators implemented in mods usually runs well, but *may* cause compatibility issues due to certain
+design assumption used by mod authors being broken for further speedups of world generation.  
+As a world generation mod author, if you find your mod broken, don't hesitate to look for help in our discord server (linked below).
+We are willing to help mod authors to embrace scalable world generation.  
+
+### Undefined behavior sanitization
+C2ME includes `CheckedThreadLocalRandom` for world random (included in [UWRAD](https://modrinth.com/mod/uwrad)) plus a few others.
+These detections exist to prevent mods from screwing up Minecraft internals and causing undebuggable problems.  
+The detection should almost **never** produce false positives, and should be taken seriously and reported
+to corresponding mod authors instead.
+
+## Usage notice
+**Backup your worlds and practice good game modding skills.**
 
 ## Downloads
-Modrinth: https://modrinth.com/mod/c2me-fabric
-CurseForge: https://www.curseforge.com/minecraft/mc-mods/c2me-fabric
+Modrinth: https://modrinth.com/mod/c2me-fabric  
+CurseForge: https://www.curseforge.com/minecraft/mc-mods/c2me
 
 ## Support status for Minecraft versions
 Only the latest Minecraft release and the latest Minecraft snapshot are fully supported. 
@@ -33,7 +52,7 @@ Our issue tracker: [link](https://github.com/RelativityMC/C2ME-fabric/issues)
 Our discord server: [link](https://discord.gg/Kdy8NM5HW4)
 
 ## Building and setting up
-JDK 22+, Clang 18+ and MinGW are required to build C2ME  
+JDK 22+, Clang 18+ are required to build C2ME  
 Run the following commands in the root directory:
 
 ```shell

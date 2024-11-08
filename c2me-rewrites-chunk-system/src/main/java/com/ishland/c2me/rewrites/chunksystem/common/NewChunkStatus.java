@@ -48,6 +48,11 @@ public abstract class NewChunkStatus implements ItemStatus<ChunkPos, ChunkState,
             public CompletionStage<Void> downgradeFromThis(ChunkLoadingContext context) {
                 throw new UnsupportedOperationException();
             }
+
+            @Override
+            public int toVanillaLevel() {
+                return ChunkLevels.INACCESSIBLE + 1;
+            }
         };
         statuses.add(NEW);
         DISK = Config.asyncSerialization ? new ReadFromDiskAsync(statuses.size()) : new ReadFromDisk(statuses.size());
