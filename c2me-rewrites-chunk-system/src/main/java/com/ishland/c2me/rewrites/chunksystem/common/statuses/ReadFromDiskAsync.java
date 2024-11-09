@@ -20,6 +20,7 @@ import com.ishland.c2me.rewrites.chunksystem.common.async_chunkio.ProtoChunkExte
 import com.ishland.c2me.rewrites.chunksystem.common.async_chunkio.SerializingRegionBasedStorageExtension;
 import com.ishland.c2me.rewrites.chunksystem.common.ducks.IPOIUnloading;
 import com.ishland.c2me.rewrites.chunksystem.common.fapi.LifecycleEventInvoker;
+import com.ishland.flowsched.scheduler.Cancellable;
 import com.ishland.flowsched.scheduler.ItemHolder;
 import com.ishland.flowsched.scheduler.KeyStatusPair;
 import io.reactivex.rxjava3.core.Single;
@@ -42,6 +43,7 @@ import net.minecraft.world.chunk.WrapperProtoChunk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -56,7 +58,7 @@ public class ReadFromDiskAsync extends ReadFromDisk {
     }
 
     @Override
-    public CompletionStage<Void> upgradeToThis(ChunkLoadingContext context) {
+    public CompletionStage<Void> upgradeToThis(ChunkLoadingContext context, Cancellable cancellable) {
         final Single<ProtoChunk> single = invokeAsyncLoad(context)
                 .retryWhen(RxJavaUtils.retryWithExponentialBackoff(3, 200))
                 .cache()
@@ -128,9 +130,14 @@ public class ReadFromDiskAsync extends ReadFromDisk {
     }
 
     @Override
-    public CompletionStage<Void> downgradeFromThis(ChunkLoadingContext context) {
+    public CompletionStage<Void> downgradeFromThis(ChunkLoadingContext context, Cancellable cancellable) {
         final AtomicBoolean loadedToWorld = new AtomicBoolean(false);
         return syncWithLightEngine(context).thenApplyAsync(unused -> {
+                    if (context.holder().getTargetStatus().ordinal() >= this.ordinal()) { // saving cancelled
+                        cancellable.cancel();
+                        return CompletableFuture.<Void>failedFuture(new CancellationException());
+                    }
+
                     final ChunkState chunkState = context.holder().getItem().get();
                     Chunk chunk = chunkState.chunk();
                     if (chunk instanceof WrapperProtoChunk protoChunk) chunk = protoChunk.getWrappedChunk();
