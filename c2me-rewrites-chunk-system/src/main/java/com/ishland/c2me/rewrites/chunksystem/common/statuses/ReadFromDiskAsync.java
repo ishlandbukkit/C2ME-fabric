@@ -6,6 +6,7 @@ import com.ishland.c2me.base.mixin.access.IVersionedChunkStorage;
 import com.ishland.c2me.rewrites.chunksystem.common.ChunkLoadingContext;
 import com.ishland.c2me.rewrites.chunksystem.common.ChunkState;
 import com.ishland.c2me.rewrites.chunksystem.common.async_chunkio.ChunkIoMainThreadTaskUtils;
+import com.ishland.flowsched.scheduler.Cancellable;
 import com.ishland.flowsched.scheduler.ItemHolder;
 import com.ishland.flowsched.scheduler.KeyStatusPair;
 import io.reactivex.rxjava3.annotations.NonNull;
@@ -29,7 +30,7 @@ public class ReadFromDiskAsync extends ReadFromDisk {
     }
 
     @Override
-    public CompletionStage<Void> upgradeToThis(ChunkLoadingContext context) {
+    public CompletionStage<Void> upgradeToThis(ChunkLoadingContext context, Cancellable cancellable) {
         final Single<ProtoChunk> single = invokeAsyncLoad(context)
                 .retryWhen(RxJavaUtils.retryWithExponentialBackoff(3, 200))
                 .onErrorResumeNext(throwable -> {

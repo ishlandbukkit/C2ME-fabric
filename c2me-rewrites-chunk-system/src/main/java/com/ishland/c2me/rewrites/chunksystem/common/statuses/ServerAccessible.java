@@ -10,6 +10,7 @@ import com.ishland.c2me.rewrites.chunksystem.common.Config;
 import com.ishland.c2me.rewrites.chunksystem.common.NewChunkHolderVanillaInterface;
 import com.ishland.c2me.rewrites.chunksystem.common.NewChunkStatus;
 import com.ishland.c2me.rewrites.chunksystem.common.fapi.LifecycleEventInvoker;
+import com.ishland.flowsched.scheduler.Cancellable;
 import com.ishland.flowsched.scheduler.ItemHolder;
 import com.ishland.flowsched.scheduler.KeyStatusPair;
 import it.unimi.dsi.fastutil.shorts.ShortList;
@@ -26,7 +27,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.ChunkRegion;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.ChunkGenerationStep;
 import net.minecraft.world.chunk.ChunkGenerationSteps;
 import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.chunk.ProtoChunk;
@@ -60,7 +60,7 @@ public class ServerAccessible extends NewChunkStatus {
     }
 
     @Override
-    public CompletionStage<Void> upgradeToThis(ChunkLoadingContext context) {
+    public CompletionStage<Void> upgradeToThis(ChunkLoadingContext context, Cancellable cancellable) {
         final Chunk chunk = context.holder().getItem().get().chunk();
         Preconditions.checkState(chunk instanceof ProtoChunk, "Chunk must be a proto chunk");
         ProtoChunk protoChunk = (ProtoChunk) chunk;
@@ -147,7 +147,7 @@ public class ServerAccessible extends NewChunkStatus {
     }
 
     @Override
-    public CompletionStage<Void> downgradeFromThis(ChunkLoadingContext context) {
+    public CompletionStage<Void> downgradeFromThis(ChunkLoadingContext context, Cancellable cancellable) {
         ChunkState state = context.holder().getItem().get();
         final Chunk chunk = state.chunk();
         Preconditions.checkState(chunk instanceof WorldChunk, "Chunk must be a full chunk");

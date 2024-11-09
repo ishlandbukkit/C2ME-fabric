@@ -17,6 +17,7 @@ import com.ishland.c2me.rewrites.chunksystem.common.async_chunkio.BlendingInfoUt
 import com.ishland.c2me.rewrites.chunksystem.common.async_chunkio.ProtoChunkExtension;
 import com.ishland.c2me.rewrites.chunksystem.common.ducks.IPOIUnloading;
 import com.ishland.c2me.rewrites.chunksystem.common.fapi.LifecycleEventInvoker;
+import com.ishland.flowsched.scheduler.Cancellable;
 import com.ishland.flowsched.scheduler.ItemHolder;
 import com.ishland.flowsched.scheduler.KeyStatusPair;
 import io.reactivex.rxjava3.annotations.NonNull;
@@ -26,7 +27,6 @@ import io.reactivex.rxjava3.schedulers.Schedulers;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.world.ServerChunkLoadingManager;
-import net.minecraft.server.world.ServerLightingProvider;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.chunk.Chunk;
@@ -42,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -56,7 +57,7 @@ public class ReadFromDisk extends NewChunkStatus {
     }
 
     @Override
-    public CompletionStage<Void> upgradeToThis(ChunkLoadingContext context) {
+    public CompletionStage<Void> upgradeToThis(ChunkLoadingContext context, Cancellable cancellable) {
         final Single<ProtoChunk> single = invokeVanillaLoad(context)
                 .retryWhen(RxJavaUtils.retryWithExponentialBackoff(5, 100));
         return finalizeLoading(context, single);
@@ -134,9 +135,15 @@ public class ReadFromDisk extends NewChunkStatus {
     }
 
     @Override
-    public CompletionStage<Void> downgradeFromThis(ChunkLoadingContext context) {
+    public CompletionStage<Void> downgradeFromThis(ChunkLoadingContext context, Cancellable cancellable) {
         final AtomicBoolean loadedToWorld = new AtomicBoolean(false);
         return syncWithLightEngine(context).thenApplyAsync(unused -> {
+                    if (context.holder().getTargetStatus().ordinal() > this.ordinal()) { // saving cancelled
+//                        LOGGER.info("Cancelling unload of {}", context.holder().getKey());
+                        cancellable.cancel();
+                        return CompletableFuture.<Void>failedFuture(new CancellationException());
+                    }
+
                     final ChunkState chunkState = context.holder().getItem().get();
                     Chunk chunk = chunkState.chunk();
                     if (chunk instanceof WrapperProtoChunk protoChunk) chunk = protoChunk.getWrappedChunk();
