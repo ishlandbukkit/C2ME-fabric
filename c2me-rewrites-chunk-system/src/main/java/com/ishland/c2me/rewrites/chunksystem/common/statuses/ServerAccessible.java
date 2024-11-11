@@ -2,6 +2,7 @@ package com.ishland.c2me.rewrites.chunksystem.common.statuses;
 
 import com.google.common.base.Preconditions;
 import com.ishland.c2me.base.common.config.ModStatuses;
+import com.ishland.c2me.base.common.threadstate.ThreadInstrumentation;
 import com.ishland.c2me.base.mixin.access.IThreadedAnvilChunkStorage;
 import com.ishland.c2me.base.mixin.access.IWorldChunk;
 import com.ishland.c2me.rewrites.chunksystem.common.ChunkLoadingContext;
@@ -10,6 +11,7 @@ import com.ishland.c2me.rewrites.chunksystem.common.Config;
 import com.ishland.c2me.rewrites.chunksystem.common.NewChunkHolderVanillaInterface;
 import com.ishland.c2me.rewrites.chunksystem.common.NewChunkStatus;
 import com.ishland.c2me.rewrites.chunksystem.common.fapi.LifecycleEventInvoker;
+import com.ishland.c2me.rewrites.chunksystem.common.threadstate.ChunkTaskWork;
 import com.ishland.flowsched.scheduler.Cancellable;
 import com.ishland.flowsched.scheduler.ItemHolder;
 import com.ishland.flowsched.scheduler.KeyStatusPair;
@@ -90,11 +92,12 @@ public class ServerAccessible extends NewChunkStatus {
         }
 
         return CompletableFuture.runAsync(() -> {
-            ServerWorld serverWorld = ((IThreadedAnvilChunkStorage) context.tacs()).getWorld();
-            final WorldChunk worldChunk = toFullChunk(protoChunk, serverWorld);
+            try (var ignored = ThreadInstrumentation.getCurrent().begin(new ChunkTaskWork(context, this, true))) {
+                ServerWorld serverWorld = ((IThreadedAnvilChunkStorage) context.tacs()).getWorld();
+                final WorldChunk worldChunk = toFullChunk(protoChunk, serverWorld);
 
-            worldChunk.setLevelTypeProvider(context.holder().getUserData().get()::getLevelType);
-            worldChunk.setUnsavedListener(((IThreadedAnvilChunkStorage) context.tacs()).getGenerationContext().unsavedListener());
+                worldChunk.setLevelTypeProvider(context.holder().getUserData().get()::getLevelType);
+                worldChunk.setUnsavedListener(((IThreadedAnvilChunkStorage) context.tacs()).getGenerationContext().unsavedListener());
             context.holder().getItem().set(new ChunkState(worldChunk, new WrapperProtoChunk(worldChunk, false), ChunkStatus.FULL));
             if (!((IWorldChunk) worldChunk).isLoadedToWorld()) {
                 worldChunk.loadEntities();
@@ -106,11 +109,12 @@ public class ServerAccessible extends NewChunkStatus {
                 }
             }
 
-            ((IThreadedAnvilChunkStorage) context.tacs()).getCurrentChunkHolders().put(context.holder().getKey().toLong(), context.holder().getUserData().get());
-            ((IThreadedAnvilChunkStorage) context.tacs()).setChunkHolderListDirty(true);
+                ((IThreadedAnvilChunkStorage) context.tacs()).getCurrentChunkHolders().put(context.holder().getKey().toLong(), context.holder().getUserData().get());
+                ((IThreadedAnvilChunkStorage) context.tacs()).setChunkHolderListDirty(true);
 
-            if (needSendChunks()) {
-                sendChunkToPlayer(context.tacs(), context.holder());
+                if (needSendChunks()) {
+                    sendChunkToPlayer(context.tacs(), context.holder());
+                }
             }
         }, ((IThreadedAnvilChunkStorage) context.tacs()).getMainThreadExecutor());
     }

@@ -3,10 +3,12 @@ package com.ishland.c2me.rewrites.chunksystem.common.statuses;
 import com.ishland.c2me.base.common.scheduler.LockTokenImpl;
 import com.ishland.c2me.base.common.scheduler.ScheduledTask;
 import com.ishland.c2me.base.common.scheduler.SchedulingManager;
+import com.ishland.c2me.base.common.threadstate.ThreadInstrumentation;
 import com.ishland.c2me.base.mixin.access.IThreadedAnvilChunkStorage;
 import com.ishland.c2me.rewrites.chunksystem.common.ChunkLoadingContext;
 import com.ishland.c2me.rewrites.chunksystem.common.ChunkState;
 import com.ishland.c2me.rewrites.chunksystem.common.NewChunkStatus;
+import com.ishland.c2me.rewrites.chunksystem.common.threadstate.ChunkTaskWork;
 import com.ishland.flowsched.executor.LockToken;
 import com.ishland.flowsched.scheduler.Cancellable;
 import com.ishland.flowsched.scheduler.ItemHolder;
@@ -14,7 +16,13 @@ import com.ishland.flowsched.scheduler.KeyStatusPair;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.chunk.*;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.ChunkGenerationContext;
+import net.minecraft.world.chunk.ChunkGenerationStep;
+import net.minecraft.world.chunk.ChunkGenerationSteps;
+import net.minecraft.world.chunk.ChunkStatus;
+import net.minecraft.world.chunk.GenerationDependencies;
+import net.minecraft.world.chunk.ProtoChunk;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,24 +117,32 @@ public class VanillaWorldGenerationDelegate extends NewChunkStatus {
         final ChunkGenerationContext chunkGenerationContext = ((IThreadedAnvilChunkStorage) context.tacs()).getGenerationContext();
         Chunk chunk = state.chunk();
         if (chunk.getStatus().isAtLeast(status)) {
-            return ChunkGenerationSteps.LOADING.get(status)
-                    .run(((IThreadedAnvilChunkStorage) context.tacs()).getGenerationContext(), context.chunks(), chunk)
-                    .whenComplete((chunk1, throwable) -> {
-                        if (chunk1 != null) {
-                            context.holder().getItem().set(new ChunkState(chunk1, (ProtoChunk) chunk1, this.status));
-                        }
-                    }).thenAccept(__ -> {});
+            try (var ignored = ThreadInstrumentation.getCurrent().begin(new ChunkTaskWork(context, this, true))) {
+                return ChunkGenerationSteps.LOADING.get(status)
+                        .run(((IThreadedAnvilChunkStorage) context.tacs()).getGenerationContext(), context.chunks(), chunk)
+                        .whenComplete((chunk1, throwable) -> {
+                            if (chunk1 != null) {
+                                context.holder().getItem().set(new ChunkState(chunk1, (ProtoChunk) chunk1, this.status));
+                            }
+                        }).thenAccept(__ -> {
+                        });
+            }
         } else {
             final ChunkGenerationStep step = ChunkGenerationSteps.GENERATION.get(status);
 
             int radius = Math.max(0, step.blockStateWriteRadius());
             return runTaskWithLock(chunk.getPos(), radius, context.schedulingManager(),
-                    () -> step.run(chunkGenerationContext, context.chunks(), chunk)
-                            .whenComplete((chunk1, throwable) -> {
-                                if (chunk1 != null) {
-                                    context.holder().getItem().set(new ChunkState(chunk1, (ProtoChunk) chunk1, this.status));
-                                }
-                            }).thenAccept(__ -> {})
+                    () -> {
+                        try (var ignored = ThreadInstrumentation.getCurrent().begin(new ChunkTaskWork(context, this, true))) {
+                            return step.run(chunkGenerationContext, context.chunks(), chunk)
+                                    .whenComplete((chunk1, throwable) -> {
+                                        if (chunk1 != null) {
+                                            context.holder().getItem().set(new ChunkState(chunk1, (ProtoChunk) chunk1, this.status));
+                                        }
+                                    }).thenAccept(__ -> {
+                                    });
+                        }
+                    }
             );
         }
     }

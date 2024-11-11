@@ -1,4 +1,0 @@
-moduleDependencies(project, [
-        "c2me-base",
-])
-

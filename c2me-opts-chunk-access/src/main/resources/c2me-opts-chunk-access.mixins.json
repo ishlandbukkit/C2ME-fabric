@@ -1,9 +1,0 @@
-{
-  "parent": "c2me.mixins.json",
-  "required": true,
-  "package": "com.ishland.c2me.opts.chunk_access.mixin",
-  "plugin": "com.ishland.c2me.opts.chunk_access.MixinPlugin",
-  "mixins": [
-    "region_capture.MixinChunkGenerationStep"
-  ]
-}
