@@ -58,9 +58,8 @@ public abstract class MixinThreadedAnvilChunkStorage implements IThreadedAnvilCh
         int i = 0;
         while (iterator.hasNext() && (i ++) < c2me$maxSearchPerCall && this.chunksBeingSavedCount.get() < c2me$maxConcurrentSaving) {
             final long pos = iterator.nextLong();
-            final ChunkHolder chunkHolder = this.getChunkHolder(pos);
+            final ChunkHolder chunkHolder = this.currentChunkHolders.get(pos);
             if (chunkHolder == null) continue;
-            if (!this.currentChunkHolders.containsKey(pos)) continue;
             if (this.save(chunkHolder, measuringTimeMs)) {
                 return true;
             }
