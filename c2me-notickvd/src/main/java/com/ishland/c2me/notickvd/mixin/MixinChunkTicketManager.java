@@ -38,7 +38,6 @@ public class MixinChunkTicketManager implements IChunkTicketManager {
     @Inject(method = "<init>", at = @At("RETURN"))
     private void onInit(CallbackInfo ci) {
         this.noTickSystem = new NoTickSystem((ChunkTicketManager) (Object) this);
-        this.simulationDistanceTracker = new NoOPTickingMap();
     }
 
     @Inject(method = "handleChunkEnter", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/world/ChunkTicketManager$DistanceFromNearestPlayerTracker;updateLevel(JIZ)V", ordinal = 0, shift = At.Shift.AFTER))
@@ -63,9 +62,6 @@ public class MixinChunkTicketManager implements IChunkTicketManager {
 
     @Inject(method = "update", at = @At("RETURN"))
     private void onTick(ServerChunkLoadingManager chunkStorage, CallbackInfoReturnable<Boolean> cir) {
-        if (this.simulationDistanceTracker instanceof NoOPTickingMap map) {
-            map.setTACS(chunkStorage);
-        }
         this.noTickSystem.afterTicketTicks();
         this.noTickSystem.tick(chunkStorage);
     }
