@@ -6,6 +6,7 @@ import com.ishland.c2me.rewrites.chunksystem.common.statuses.ServerAccessible;
 import com.ishland.c2me.rewrites.chunksystem.common.statuses.ServerBlockTicking;
 import com.ishland.c2me.rewrites.chunksystem.common.statuses.ServerEntityTicking;
 import com.ishland.c2me.rewrites.chunksystem.common.statuses.VanillaWorldGenerationDelegate;
+import com.ishland.flowsched.scheduler.Cancellable;
 import com.ishland.flowsched.scheduler.ItemHolder;
 import com.ishland.flowsched.scheduler.ItemStatus;
 import com.ishland.flowsched.scheduler.KeyStatusPair;
@@ -40,12 +41,12 @@ public abstract class NewChunkStatus implements ItemStatus<ChunkPos, ChunkState,
         ArrayList<NewChunkStatus> statuses = new ArrayList<>();
         NEW = new NewChunkStatus(statuses.size(), ChunkStatus.EMPTY) {
             @Override
-            public CompletionStage<Void> upgradeToThis(ChunkLoadingContext context) {
+            public CompletionStage<Void> upgradeToThis(ChunkLoadingContext context, Cancellable cancellable) {
                 throw new UnsupportedOperationException();
             }
 
             @Override
-            public CompletionStage<Void> downgradeFromThis(ChunkLoadingContext context) {
+            public CompletionStage<Void> downgradeFromThis(ChunkLoadingContext context, Cancellable cancellable) {
                 throw new UnsupportedOperationException();
             }
 

@@ -1,11 +1,14 @@
 package com.ishland.c2me.rewrites.chunksystem.common.statuses;
 
+import com.ishland.c2me.base.common.threadstate.ThreadInstrumentation;
 import com.ishland.c2me.base.common.util.RxJavaUtils;
 import com.ishland.c2me.base.mixin.access.IThreadedAnvilChunkStorage;
 import com.ishland.c2me.base.mixin.access.IVersionedChunkStorage;
 import com.ishland.c2me.rewrites.chunksystem.common.ChunkLoadingContext;
 import com.ishland.c2me.rewrites.chunksystem.common.ChunkState;
 import com.ishland.c2me.rewrites.chunksystem.common.async_chunkio.ChunkIoMainThreadTaskUtils;
+import com.ishland.c2me.rewrites.chunksystem.common.threadstate.ChunkTaskWork;
+import com.ishland.flowsched.scheduler.Cancellable;
 import com.ishland.flowsched.scheduler.ItemHolder;
 import com.ishland.flowsched.scheduler.KeyStatusPair;
 import io.reactivex.rxjava3.annotations.NonNull;
@@ -29,7 +32,7 @@ public class ReadFromDiskAsync extends ReadFromDisk {
     }
 
     @Override
-    public CompletionStage<Void> upgradeToThis(ChunkLoadingContext context) {
+    public CompletionStage<Void> upgradeToThis(ChunkLoadingContext context, Cancellable cancellable) {
         final Single<ProtoChunk> single = invokeAsyncLoad(context)
                 .retryWhen(RxJavaUtils.retryWithExponentialBackoff(3, 200))
                 .onErrorResumeNext(throwable -> {
@@ -40,33 +43,37 @@ public class ReadFromDiskAsync extends ReadFromDisk {
         return finalizeLoading(context, single);
     }
 
-    protected static @NonNull Single<ProtoChunk> invokeAsyncLoad(ChunkLoadingContext context) {
+    protected @NonNull Single<ProtoChunk> invokeAsyncLoad(ChunkLoadingContext context) {
         return invokeInitialChunkRead(context)
                 .map(chunkSerializer -> {
-                    final ReferenceArrayList<Runnable> mainThreadQueue = new ReferenceArrayList<>();
-                    if (chunkSerializer.isPresent()) {
-                        ChunkIoMainThreadTaskUtils.push(mainThreadQueue);
-                        try {
-                            return Pair.of(
-                                    chunkSerializer.get().convert(
-                                            ((IThreadedAnvilChunkStorage) context.tacs()).getWorld(),
-                                            ((IThreadedAnvilChunkStorage) context.tacs()).getPointOfInterestStorage(),
-                                            ((IVersionedChunkStorage) context.tacs()).invokeGetStorageKey(),
-                                            context.holder().getKey()
-                                    ),
-                                    mainThreadQueue
-                            );
-                        } finally {
-                            ChunkIoMainThreadTaskUtils.pop(mainThreadQueue);
+                    try (var ignored = ThreadInstrumentation.getCurrent().begin(new ChunkTaskWork(context, this, true))) {
+                        final ReferenceArrayList<Runnable> mainThreadQueue = new ReferenceArrayList<>();
+                        if (chunkSerializer.isPresent()) {
+                            ChunkIoMainThreadTaskUtils.push(mainThreadQueue);
+                            try {
+                                return Pair.of(
+                                        chunkSerializer.get().convert(
+                                                ((IThreadedAnvilChunkStorage) context.tacs()).getWorld(),
+                                                ((IThreadedAnvilChunkStorage) context.tacs()).getPointOfInterestStorage(),
+                                                ((IVersionedChunkStorage) context.tacs()).invokeGetStorageKey(),
+                                                context.holder().getKey()
+                                        ),
+                                        mainThreadQueue
+                                );
+                            } finally {
+                                ChunkIoMainThreadTaskUtils.pop(mainThreadQueue);
+                            }
+                        } else {
+                            return Pair.of(createEmptyProtoChunk(context), mainThreadQueue);
                         }
-                    } else {
-                        return Pair.of(createEmptyProtoChunk(context), mainThreadQueue);
                     }
                 })
                 .flatMap(pair -> postChunkLoading(context, pair.first()).toSingleDefault(pair))
                 .observeOn(Schedulers.from(((IThreadedAnvilChunkStorage) context.tacs()).getMainThreadExecutor()))
                 .map(pair -> {
-                    ChunkIoMainThreadTaskUtils.drainQueue(pair.second());
+                    try (var ignored = ThreadInstrumentation.getCurrent().begin(new ChunkTaskWork(context, this, true))) {
+                        ChunkIoMainThreadTaskUtils.drainQueue(pair.second());
+                    }
                     return pair.first();
                 });
     }
