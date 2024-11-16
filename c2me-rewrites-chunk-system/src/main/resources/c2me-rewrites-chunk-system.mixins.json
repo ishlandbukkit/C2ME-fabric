@@ -19,6 +19,7 @@
     "async_serialization.MixinChunkSerializer",
     "async_serialization.MixinProtoChunk",
     "async_serialization.MixinStorageIoWorker",
-    "async_serialization.MixinThreadedAnvilChunkStorage"
+    "async_serialization.MixinThreadedAnvilChunkStorage",
+    "fluid_postprocessing.MixinWorldChunk"
   ]
 }

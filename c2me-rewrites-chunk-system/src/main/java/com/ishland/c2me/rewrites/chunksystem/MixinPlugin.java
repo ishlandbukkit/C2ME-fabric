@@ -1,6 +1,7 @@
 package com.ishland.c2me.rewrites.chunksystem;
 
 import com.ishland.c2me.base.common.ModuleMixinPlugin;
+import com.ishland.c2me.rewrites.chunksystem.common.Config;
 
 import java.lang.reflect.Field;
 
@@ -16,7 +17,8 @@ public class MixinPlugin extends ModuleMixinPlugin {
         if (mixinClassName.startsWith("com.ishland.c2me.rewrites.chunksystem.mixin.serialization_sync."))
             return !gcFreeChunkSerializerDetected;
 
-
+        if (mixinClassName.startsWith("com.ishland.c2me.rewrites.chunksystem.mixin.fluid_postprocessing"))
+            return Config.fluidPostProcessingToScheduledTick;
 
         return true;
     }
