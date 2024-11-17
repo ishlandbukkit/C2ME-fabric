@@ -20,12 +20,12 @@ public class ModuleEntryPoint {
                             if( is_windows,
                                 (cpus / 1.6 - 2),
                                 (cpus / 1.2 - 2)
-                            ),
+                            )  - if(is_client, 2, 0),
                             if( is_j9vm,
                                 ( ( mem_gb - (if(is_client, 0.6, 0.2)) ) / 0.4 ),
                                 ( ( mem_gb - (if(is_client, 1.2, 0.6)) ) / 0.6 )
                             )
-                        ) - if(is_client, 2, 0)
+                        )
                     )
                 \040""";
 
