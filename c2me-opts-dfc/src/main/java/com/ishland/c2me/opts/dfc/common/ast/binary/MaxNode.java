@@ -6,7 +6,7 @@ import com.ishland.c2me.opts.dfc.common.gen.BytecodeGen;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.InstructionAdapter;
 
-public class MaxNode extends AbstractBinaryNode { // missed optimization: left > right.maxValue
+public class MaxNode extends AbstractBinaryNode {
 
     public MaxNode(AstNode left, AstNode right) {
         super(left, right);
