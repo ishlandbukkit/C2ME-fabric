@@ -11,6 +11,10 @@
     "MixinUtil",
     "object_pooling_caching.MixinConfiguredFeature",
     "object_pooling_caching.MixinOreFeature",
+    "predicates.MixinAllOfBlockPredicate",
+    "predicates.MixinAnyOfBlockPredicate",
+    "predicates.MixinCombinedBlockPredicate",
+    "predicates.MixinOffsetPredicate",
     "surfacebuilder.MixinMaterialRuleContext",
     "surfacebuilder.MixinMaterialRulesSequenceBlockStateRule",
     "surfacebuilder.MixinMaterialRulesSequenceMaterialRule"
