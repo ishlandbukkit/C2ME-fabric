@@ -62,7 +62,53 @@ public class MaxShortNode extends AbstractBinaryNode {
 
     @Override
     public void doBytecodeGenMulti(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
-        context.delegateToSingle(m, localVarConsumer, this);
+        String leftMethod = context.newMultiMethod(this.left);
+        String rightMethodSingle = context.newSingleMethod(this.right);
+        context.callDelegateMulti(m, leftMethod);
+
+        context.doCountedLoop(m, localVarConsumer, idx -> {
+            Label minLabel = new Label();
+            Label end = new Label();
+
+            m.load(1, InstructionAdapter.OBJECT_TYPE);
+            m.load(idx, Type.INT_TYPE);
+
+            m.load(1, InstructionAdapter.OBJECT_TYPE);
+            m.load(idx, Type.INT_TYPE);
+            m.aload(Type.DOUBLE_TYPE);
+
+            m.dup2();
+            m.dconst(this.rightMax);
+            m.cmpl(Type.DOUBLE_TYPE);
+            m.iflt(minLabel);
+            m.goTo(end);
+
+            m.visitLabel(minLabel);
+
+            m.load(0, InstructionAdapter.OBJECT_TYPE);
+            m.load(2, InstructionAdapter.OBJECT_TYPE);
+            m.load(idx, Type.INT_TYPE);
+            m.aload(Type.INT_TYPE);
+            m.load(3, InstructionAdapter.OBJECT_TYPE);
+            m.load(idx, Type.INT_TYPE);
+            m.aload(Type.INT_TYPE);
+            m.load(4, InstructionAdapter.OBJECT_TYPE);
+            m.load(idx, Type.INT_TYPE);
+            m.aload(Type.INT_TYPE);
+            m.load(5, InstructionAdapter.OBJECT_TYPE);
+            m.invokevirtual(context.className, rightMethodSingle, BytecodeGen.Context.SINGLE_DESC, false);
+
+            m.invokestatic(
+                    Type.getInternalName(Math.class),
+                    "max",
+                    Type.getMethodDescriptor(Type.DOUBLE_TYPE, Type.DOUBLE_TYPE, Type.DOUBLE_TYPE),
+                    false
+            );
+
+            m.visitLabel(end);
+            m.astore(Type.DOUBLE_TYPE);
+        });
+
         m.areturn(Type.VOID_TYPE);
     }
 
