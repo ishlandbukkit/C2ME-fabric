@@ -7,28 +7,31 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.InstructionAdapter;
 
-public class MulNode extends AbstractBinaryNode {
+public class MaxShortNode extends AbstractBinaryNode {
 
-    public MulNode(AstNode left, AstNode right) {
+    private final double rightMax;
+
+    public MaxShortNode(AstNode left, AstNode right, double rightMax) {
         super(left, right);
+        this.rightMax = rightMax;
     }
 
     @Override
     protected AstNode newInstance(AstNode left, AstNode right) {
-        return new MulNode(left, right);
+        return new MaxShortNode(left, right, this.rightMax);
     }
 
     @Override
     public double evalSingle(int x, int y, int z, EvalType type) {
         double evaled = this.left.evalSingle(x, y, z, type);
-        return evaled == 0.0 ? 0.0 : evaled * this.right.evalSingle(x, y, z, type);
+        return evaled >= this.rightMax ? evaled : Math.max(evaled, this.right.evalSingle(x, y, z, type));
     }
 
     @Override
     public void evalMulti(double[] res, int[] x, int[] y, int[] z, EvalType type) {
         this.left.evalMulti(res, x, y, z, type);
         for (int i = 0; i < res.length; i++) {
-            res[i] = res[i] == 0.0 ? 0.0 : res[i] * this.right.evalSingle(x[i], y[i], z[i], type);
+            res[i] = res[i] >= this.rightMax ? res[i] : Math.max(res[i], this.right.evalSingle(x[i], y[i], z[i], type));
         }
     }
 
@@ -37,19 +40,23 @@ public class MulNode extends AbstractBinaryNode {
         String leftMethod = context.newSingleMethod(this.left);
         String rightMethod = context.newSingleMethod(this.right);
 
-        Label notZero = new Label();
+        Label minLabel = new Label();
 
         context.callDelegateSingle(m, leftMethod);
         m.dup2();
-        m.dconst(0.0);
+        m.dconst(this.rightMax);
         m.cmpl(Type.DOUBLE_TYPE);
-        m.ifne(notZero);
-        m.dconst(0.0);
+        m.iflt(minLabel);
         m.areturn(Type.DOUBLE_TYPE);
 
-        m.visitLabel(notZero);
+        m.visitLabel(minLabel);
         context.callDelegateSingle(m, rightMethod);
-        m.mul(Type.DOUBLE_TYPE);
+        m.invokestatic(
+                Type.getInternalName(Math.class),
+                "max",
+                Type.getMethodDescriptor(Type.DOUBLE_TYPE, Type.DOUBLE_TYPE, Type.DOUBLE_TYPE),
+                false
+        );
         m.areturn(Type.DOUBLE_TYPE);
     }
 
