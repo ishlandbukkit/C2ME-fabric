@@ -416,7 +416,7 @@ public class SplineAstNode implements AstNode {
 
     @Override
     public void doBytecodeGenMulti(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
-        context.delegateToSingle(m, localVarConsumer, this);
+        context.delegateAllToSingle(m, localVarConsumer, this);
         m.areturn(Type.VOID_TYPE);
     }
 

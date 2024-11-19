@@ -278,18 +278,7 @@ public class RangeChoiceNode implements AstNode {
                 m.load(idx, Type.INT_TYPE);
                 m.aload(Type.DOUBLE_TYPE);
             } else {
-                m.load(0, InstructionAdapter.OBJECT_TYPE);
-                m.load(2, InstructionAdapter.OBJECT_TYPE);
-                m.load(idx, Type.INT_TYPE);
-                m.aload(Type.INT_TYPE);
-                m.load(3, InstructionAdapter.OBJECT_TYPE);
-                m.load(idx, Type.INT_TYPE);
-                m.aload(Type.INT_TYPE);
-                m.load(4, InstructionAdapter.OBJECT_TYPE);
-                m.load(idx, Type.INT_TYPE);
-                m.aload(Type.INT_TYPE);
-                m.load(5, InstructionAdapter.OBJECT_TYPE);
-                m.invokevirtual(context.className, whenInRangeSingle, BytecodeGen.Context.SINGLE_DESC, false);
+                context.callDelegateSingleFromMulti(m, whenInRangeSingle, idx);
             }
             m.goTo(end);
 
@@ -299,18 +288,7 @@ public class RangeChoiceNode implements AstNode {
                 m.load(idx, Type.INT_TYPE);
                 m.aload(Type.DOUBLE_TYPE);
             } else {
-                m.load(0, InstructionAdapter.OBJECT_TYPE);
-                m.load(2, InstructionAdapter.OBJECT_TYPE);
-                m.load(idx, Type.INT_TYPE);
-                m.aload(Type.INT_TYPE);
-                m.load(3, InstructionAdapter.OBJECT_TYPE);
-                m.load(idx, Type.INT_TYPE);
-                m.aload(Type.INT_TYPE);
-                m.load(4, InstructionAdapter.OBJECT_TYPE);
-                m.load(idx, Type.INT_TYPE);
-                m.aload(Type.INT_TYPE);
-                m.load(5, InstructionAdapter.OBJECT_TYPE);
-                m.invokevirtual(context.className, whenOutOfRangeSingle, BytecodeGen.Context.SINGLE_DESC, false);
+                context.callDelegateSingleFromMulti(m, whenOutOfRangeSingle, idx);
             }
 
             m.visitLabel(end);

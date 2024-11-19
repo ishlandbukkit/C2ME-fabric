@@ -79,18 +79,7 @@ public class MulNode extends AbstractBinaryNode {
             m.goTo(end);
 
             m.visitLabel(minLabel);
-            m.load(0, InstructionAdapter.OBJECT_TYPE);
-            m.load(2, InstructionAdapter.OBJECT_TYPE);
-            m.load(idx, Type.INT_TYPE);
-            m.aload(Type.INT_TYPE);
-            m.load(3, InstructionAdapter.OBJECT_TYPE);
-            m.load(idx, Type.INT_TYPE);
-            m.aload(Type.INT_TYPE);
-            m.load(4, InstructionAdapter.OBJECT_TYPE);
-            m.load(idx, Type.INT_TYPE);
-            m.aload(Type.INT_TYPE);
-            m.load(5, InstructionAdapter.OBJECT_TYPE);
-            m.invokevirtual(context.className, rightMethodSingle, BytecodeGen.Context.SINGLE_DESC, false);
+            context.callDelegateSingleFromMulti(m, rightMethodSingle, idx);
             m.mul(Type.DOUBLE_TYPE);
 
             m.visitLabel(end);
