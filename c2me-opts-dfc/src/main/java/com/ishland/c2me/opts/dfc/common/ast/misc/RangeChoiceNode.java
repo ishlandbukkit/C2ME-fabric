@@ -201,9 +201,9 @@ public class RangeChoiceNode implements AstNode {
 
     @Override
     public void doBytecodeGenSingle(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
-        String inputMethod = context.newSingleMethod(this.input);
-        String whenInRangeMethod = context.newSingleMethod(this.whenInRange);
-        String whenOutOfRangeMethod = context.newSingleMethod(this.whenOutOfRange);
+        BytecodeGen.Context.ValuesMethodDefD inputMethod = context.newSingleMethod(this.input);
+        BytecodeGen.Context.ValuesMethodDefD whenInRangeMethod = context.newSingleMethod(this.whenInRange);
+        BytecodeGen.Context.ValuesMethodDefD whenOutOfRangeMethod = context.newSingleMethod(this.whenOutOfRange);
 
         int inputValue = localVarConsumer.createLocalVariable("inputValue", Type.DOUBLE_TYPE.getDescriptor());
         context.callDelegateSingle(m, inputMethod);
@@ -241,10 +241,10 @@ public class RangeChoiceNode implements AstNode {
 
     @Override
     public void doBytecodeGenMulti(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
-        String inputSingle = context.newSingleMethod(this.input);
-        String whenInRangeSingle = context.newSingleMethod(this.whenInRange);
-        String whenOutOfRangeSingle = context.newSingleMethod(this.whenOutOfRange);
-        String inputMulti = context.newMultiMethod(this.input);
+        BytecodeGen.Context.ValuesMethodDefD inputSingle = context.newSingleMethod(this.input);
+        BytecodeGen.Context.ValuesMethodDefD whenInRangeSingle = context.newSingleMethod(this.whenInRange);
+        BytecodeGen.Context.ValuesMethodDefD whenOutOfRangeSingle = context.newSingleMethod(this.whenOutOfRange);
+        BytecodeGen.Context.ValuesMethodDefD inputMulti = context.newMultiMethod(this.input);
 //        String whenInRangeMulti = context.newMultiMethod(this.whenInRange);
 //        String whenOutOfRangeMulti = context.newMultiMethod(this.whenOutOfRange);
 

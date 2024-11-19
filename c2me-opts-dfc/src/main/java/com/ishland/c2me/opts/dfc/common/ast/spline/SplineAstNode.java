@@ -56,21 +56,21 @@ public class SplineAstNode implements AstNode {
 
     @Override
     public void doBytecodeGenSingle(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
-        ValuesMethodDef splineMethod = doBytecodeGenSpline(context, this.spline);
+        BytecodeGen.Context.ValuesMethodDefF splineMethod = doBytecodeGenSpline(context, this.spline);
         callSplineSingle(context, m, splineMethod);
         m.cast(Type.FLOAT_TYPE, Type.DOUBLE_TYPE);
         m.areturn(Type.DOUBLE_TYPE);
     }
 
-    private static ValuesMethodDef doBytecodeGenSpline(BytecodeGen.Context context, Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> spline) {
+    private static BytecodeGen.Context.ValuesMethodDefF doBytecodeGenSpline(BytecodeGen.Context context, Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> spline) {
         {
             String cachedSplineMethod = context.getCachedSplineMethod(spline);
             if (cachedSplineMethod != null) {
-                return new ValuesMethodDef(false, cachedSplineMethod, 0.0F);
+                return new BytecodeGen.Context.ValuesMethodDefF(cachedSplineMethod);
             }
         }
         if (spline instanceof Spline.FixedFloatFunction<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> spline1) {
-            return new ValuesMethodDef(true, null, spline1.value());
+            return new BytecodeGen.Context.ValuesMethodDefF(spline1.value());
         }
         String name = context.nextMethodName("Spline");
         InstructionAdapter m = new InstructionAdapter(
@@ -99,9 +99,9 @@ public class SplineAstNode implements AstNode {
         };
 
         if (spline instanceof Spline.Implementation<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> impl) {
-            ValuesMethodDef[] valuesMethods = impl.values().stream()
+            BytecodeGen.Context.ValuesMethodDefF[] valuesMethods = impl.values().stream()
                     .map(spline1 -> doBytecodeGenSpline(context, spline1))
-                    .toArray(ValuesMethodDef[]::new);
+                    .toArray(BytecodeGen.Context.ValuesMethodDefF[]::new);
 
             String locations = context.newField(float[].class, impl.locations());
             String derivatives = context.newField(float[].class, impl.derivatives());
@@ -111,7 +111,7 @@ public class SplineAstNode implements AstNode {
 
             int lastConst = impl.locations().length - 1;
 
-            String locationFunction = context.newSingleMethod(McToAst.toAst(impl.locationFunction().function().value()));
+            BytecodeGen.Context.ValuesMethodDefD locationFunction = context.newSingleMethod(McToAst.toAst(impl.locationFunction().function().value()));
             context.callDelegateSingle(m, locationFunction);
             m.cast(Type.DOUBLE_TYPE, Type.FLOAT_TYPE);
             m.store(point, Type.FLOAT_TYPE);
@@ -395,10 +395,10 @@ public class SplineAstNode implements AstNode {
 
         context.cacheSplineMethod(spline, name);
 
-        return new ValuesMethodDef(false, name, 0.0F);
+        return new BytecodeGen.Context.ValuesMethodDefF(name);
     }
 
-    private static void callSplineSingle(BytecodeGen.Context context, InstructionAdapter m, ValuesMethodDef target) {
+    private static void callSplineSingle(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.ValuesMethodDefF target) {
         if (target.isConst()) {
             m.fconst(target.constValue());
         } else {
@@ -409,9 +409,6 @@ public class SplineAstNode implements AstNode {
             m.load(4, InstructionAdapter.OBJECT_TYPE);
             m.invokevirtual(context.className, target.generatedMethod(), SPLINE_METHOD_DESC, false);
         }
-    }
-
-    private record ValuesMethodDef(boolean isConst, String generatedMethod, float constValue) {
     }
 
     @Override

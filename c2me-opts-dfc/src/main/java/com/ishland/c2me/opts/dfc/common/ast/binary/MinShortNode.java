@@ -37,8 +37,8 @@ public class MinShortNode extends AbstractBinaryNode {
 
     @Override
     public void doBytecodeGenSingle(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
-        String leftMethod = context.newSingleMethod(this.left);
-        String rightMethod = context.newSingleMethod(this.right);
+        BytecodeGen.Context.ValuesMethodDefD leftMethod = context.newSingleMethod(this.left);
+        BytecodeGen.Context.ValuesMethodDefD rightMethod = context.newSingleMethod(this.right);
 
         Label minLabel = new Label();
 
@@ -62,8 +62,8 @@ public class MinShortNode extends AbstractBinaryNode {
 
     @Override
     public void doBytecodeGenMulti(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
-        String leftMethod = context.newMultiMethod(this.left);
-        String rightMethodSingle = context.newSingleMethod(this.right);
+        BytecodeGen.Context.ValuesMethodDefD leftMethod = context.newMultiMethod(this.left);
+        BytecodeGen.Context.ValuesMethodDefD rightMethodSingle = context.newSingleMethod(this.right);
         context.callDelegateMulti(m, leftMethod);
 
         context.doCountedLoop(m, localVarConsumer, idx -> {

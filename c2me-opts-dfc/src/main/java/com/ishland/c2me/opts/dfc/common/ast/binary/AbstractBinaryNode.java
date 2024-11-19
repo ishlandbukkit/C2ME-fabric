@@ -77,8 +77,8 @@ public abstract class AbstractBinaryNode implements AstNode {
 
     @Override
     public void doBytecodeGenSingle(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
-        String leftMethod = context.newSingleMethod(this.left);
-        String rightMethod = context.newSingleMethod(this.right);
+        BytecodeGen.Context.ValuesMethodDefD leftMethod = context.newSingleMethod(this.left);
+        BytecodeGen.Context.ValuesMethodDefD rightMethod = context.newSingleMethod(this.right);
 
         context.callDelegateSingle(m, leftMethod);
         context.callDelegateSingle(m, rightMethod);
@@ -86,8 +86,8 @@ public abstract class AbstractBinaryNode implements AstNode {
 
     @Override
     public void doBytecodeGenMulti(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
-        String leftMethod = context.newMultiMethod(this.left);
-        String rightMethod = context.newMultiMethod(this.right);
+        BytecodeGen.Context.ValuesMethodDefD leftMethod = context.newMultiMethod(this.left);
+        BytecodeGen.Context.ValuesMethodDefD rightMethod = context.newMultiMethod(this.right);
 
         int res1 = localVarConsumer.createLocalVariable("res1", Type.getDescriptor(double[].class));
 
@@ -98,14 +98,7 @@ public abstract class AbstractBinaryNode implements AstNode {
         m.invokevirtual(Type.getInternalName(ArrayCache.class), "getDoubleArray", Type.getMethodDescriptor(Type.getType(double[].class), Type.INT_TYPE, Type.BOOLEAN_TYPE), false);
         m.store(res1, InstructionAdapter.OBJECT_TYPE);
         context.callDelegateMulti(m, leftMethod);
-        m.load(0, InstructionAdapter.OBJECT_TYPE);
-        m.load(res1, InstructionAdapter.OBJECT_TYPE);
-        m.load(2, InstructionAdapter.OBJECT_TYPE);
-        m.load(3, InstructionAdapter.OBJECT_TYPE);
-        m.load(4, InstructionAdapter.OBJECT_TYPE);
-        m.load(5, InstructionAdapter.OBJECT_TYPE);
-        m.load(6, InstructionAdapter.OBJECT_TYPE);
-        m.invokevirtual(context.className, rightMethod, BytecodeGen.Context.MULTI_DESC, false);
+        context.callDelegateMulti(m, rightMethod, res1);
 
         context.doCountedLoop(m, localVarConsumer, idx -> bytecodeGenMultiBody(m, idx, res1));
 

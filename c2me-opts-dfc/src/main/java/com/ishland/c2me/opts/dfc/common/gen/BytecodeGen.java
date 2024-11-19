@@ -37,6 +37,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.ListIterator;
@@ -347,15 +348,24 @@ public class BytecodeGen {
             return String.format("method_%d_%s", methodIdx++, suffix);
         }
 
-        public String newSingleMethod(AstNode node) {
+        public ValuesMethodDefD newSingleMethod(AstNode node) {
+            if (node instanceof ConstantNode constantNode) {
+                return new ValuesMethodDefD(constantNode.getValue());
+            } else {
+                String generated = this.newSingleMethodUnoptimized(node);
+                return new ValuesMethodDefD(generated);
+            }
+        }
+
+        public String newSingleMethodUnoptimized(AstNode node) {
             return this.singleMethods.computeIfAbsent(node, (AstNode node1) -> this.newSingleMethod((adapter, localVarConsumer) -> node1.doBytecodeGenSingle(this, adapter, localVarConsumer), nextMethodName(node.getClass().getSimpleName())));
         }
 
-        public String newSingleMethod(BiConsumer<InstructionAdapter, LocalVarConsumer> generator) {
+        private String newSingleMethod(BiConsumer<InstructionAdapter, LocalVarConsumer> generator) {
             return newSingleMethod(generator, nextMethodName());
         }
 
-        public String newSingleMethod(BiConsumer<InstructionAdapter, LocalVarConsumer> generator, String name) {
+        private String newSingleMethod(BiConsumer<InstructionAdapter, LocalVarConsumer> generator, String name) {
             newSingleMethod0(generator, name, false);
             return name;
         }
@@ -397,15 +407,24 @@ public class BytecodeGen {
             adapter.visitMaxs(0, 0);
         }
 
-        public String newMultiMethod(AstNode node) {
+        public ValuesMethodDefD newMultiMethod(AstNode node) {
+            if (node instanceof ConstantNode constantNode) {
+                return new ValuesMethodDefD(constantNode.getValue());
+            } else {
+                String generated = newMultiMethodUnoptimized(node);
+                return new ValuesMethodDefD(generated);
+            }
+        }
+
+        public String newMultiMethodUnoptimized(AstNode node) {
             return this.multiMethods.computeIfAbsent(node, (AstNode node1) -> this.newMultiMethod((adapter, localVarConsumer) -> node1.doBytecodeGenMulti(this, adapter, localVarConsumer), nextMethodName(node.getClass().getSimpleName())));
         }
 
-        public String newMultiMethod(BiConsumer<InstructionAdapter, LocalVarConsumer> generator) {
+        private String newMultiMethod(BiConsumer<InstructionAdapter, LocalVarConsumer> generator) {
             return newMultiMethod(generator, nextMethodName());
         }
 
-        public String newMultiMethod(BiConsumer<InstructionAdapter, LocalVarConsumer> generator, String name) {
+        private String newMultiMethod(BiConsumer<InstructionAdapter, LocalVarConsumer> generator, String name) {
             newMultiMethod0(generator, name, false);
             return name;
         }
@@ -457,45 +476,63 @@ public class BytecodeGen {
             this.splineMethods.put(spline, method);
         }
 
-        public void callDelegateSingle(InstructionAdapter m, String target) {
-            m.load(0, InstructionAdapter.OBJECT_TYPE);
-            m.load(1, Type.INT_TYPE);
-            m.load(2, Type.INT_TYPE);
-            m.load(3, Type.INT_TYPE);
-            m.load(4, InstructionAdapter.OBJECT_TYPE);
-            m.invokevirtual(this.className, target, SINGLE_DESC, false);
+        public void callDelegateSingle(InstructionAdapter m, ValuesMethodDefD target) {
+            if (target.isConst()) {
+                m.dconst(target.constValue());
+            } else {
+                m.load(0, InstructionAdapter.OBJECT_TYPE);
+                m.load(1, Type.INT_TYPE);
+                m.load(2, Type.INT_TYPE);
+                m.load(3, Type.INT_TYPE);
+                m.load(4, InstructionAdapter.OBJECT_TYPE);
+                m.invokevirtual(this.className, target.generatedMethod(), SINGLE_DESC, false);
+            }
         }
 
-        public void callDelegateSingleFromMulti(InstructionAdapter m, String target, int indexLocal) {
-            m.load(0, InstructionAdapter.OBJECT_TYPE);
-            m.load(2, InstructionAdapter.OBJECT_TYPE);
-            m.load(indexLocal, Type.INT_TYPE);
-            m.aload(Type.INT_TYPE);
-            m.load(3, InstructionAdapter.OBJECT_TYPE);
-            m.load(indexLocal, Type.INT_TYPE);
-            m.aload(Type.INT_TYPE);
-            m.load(4, InstructionAdapter.OBJECT_TYPE);
-            m.load(indexLocal, Type.INT_TYPE);
-            m.aload(Type.INT_TYPE);
-            m.load(5, InstructionAdapter.OBJECT_TYPE);
+        public void callDelegateSingleFromMulti(InstructionAdapter m, ValuesMethodDefD target, int indexLocal) {
+            if (target.isConst()) {
+                m.dconst(target.constValue());
+            } else {
+                m.load(0, InstructionAdapter.OBJECT_TYPE);
+                m.load(2, InstructionAdapter.OBJECT_TYPE);
+                m.load(indexLocal, Type.INT_TYPE);
+                m.aload(Type.INT_TYPE);
+                m.load(3, InstructionAdapter.OBJECT_TYPE);
+                m.load(indexLocal, Type.INT_TYPE);
+                m.aload(Type.INT_TYPE);
+                m.load(4, InstructionAdapter.OBJECT_TYPE);
+                m.load(indexLocal, Type.INT_TYPE);
+                m.aload(Type.INT_TYPE);
+                m.load(5, InstructionAdapter.OBJECT_TYPE);
 
-            m.invokevirtual(
-                    this.className,
-                    target,
-                    BytecodeGen.Context.SINGLE_DESC,
-                    false
-            );
+                m.invokevirtual(
+                        this.className,
+                        target.generatedMethod(),
+                        BytecodeGen.Context.SINGLE_DESC,
+                        false
+                );
+            }
         }
 
-        public void callDelegateMulti(InstructionAdapter m, String target) {
-            m.load(0, InstructionAdapter.OBJECT_TYPE);
-            m.load(1, InstructionAdapter.OBJECT_TYPE);
-            m.load(2, InstructionAdapter.OBJECT_TYPE);
-            m.load(3, InstructionAdapter.OBJECT_TYPE);
-            m.load(4, InstructionAdapter.OBJECT_TYPE);
-            m.load(5, InstructionAdapter.OBJECT_TYPE);
-            m.load(6, InstructionAdapter.OBJECT_TYPE);
-            m.invokevirtual(this.className, target, MULTI_DESC, false);
+        public void callDelegateMulti(InstructionAdapter m, ValuesMethodDefD target) {
+            callDelegateMulti(m, target, 1);
+        }
+
+        public void callDelegateMulti(InstructionAdapter m, ValuesMethodDefD target, int arrayLocalIndex) {
+            if (target.isConst()) {
+                m.load(arrayLocalIndex, InstructionAdapter.OBJECT_TYPE);
+                m.dconst(target.constValue());
+                m.invokestatic(Type.getInternalName(Arrays.class), "fill", Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(double[].class), Type.DOUBLE_TYPE), false);
+            } else {
+                m.load(0, InstructionAdapter.OBJECT_TYPE);
+                m.load(arrayLocalIndex, InstructionAdapter.OBJECT_TYPE);
+                m.load(2, InstructionAdapter.OBJECT_TYPE);
+                m.load(3, InstructionAdapter.OBJECT_TYPE);
+                m.load(4, InstructionAdapter.OBJECT_TYPE);
+                m.load(5, InstructionAdapter.OBJECT_TYPE);
+                m.load(6, InstructionAdapter.OBJECT_TYPE);
+                m.invokevirtual(this.className, target.generatedMethod(), MULTI_DESC, false);
+            }
         }
 
         public <T> String newField(Class<T> type, T data) {
@@ -536,7 +573,7 @@ public class BytecodeGen {
         }
 
         public void delegateAllToSingle(InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer, AstNode current) {
-            String singleMethod = this.newSingleMethod(current);
+            ValuesMethodDefD singleMethod = this.newSingleMethod(current);
             this.doCountedLoop(m, localVarConsumer, idx -> {
                 m.load(1, InstructionAdapter.OBJECT_TYPE);
                 m.load(idx, Type.INT_TYPE);
@@ -578,6 +615,30 @@ public class BytecodeGen {
 
         public static interface LocalVarConsumer {
             int createLocalVariable(String name, String descriptor);
+        }
+
+        public record ValuesMethodDefF(boolean isConst, String generatedMethod, float constValue) {
+
+            public ValuesMethodDefF(String generatedMethod) {
+                this(false, generatedMethod, Float.NaN);
+            }
+            
+            public ValuesMethodDefF(float constValue) {
+                this(true, null, constValue);
+            }
+            
+        }
+
+        public record ValuesMethodDefD(boolean isConst, String generatedMethod, double constValue) {
+            
+            public ValuesMethodDefD(String generatedMethod) {
+                this(false, generatedMethod, Double.NaN);
+            }
+            
+            public ValuesMethodDefD(double constValue) {
+                this(true, null, constValue);
+            }
+            
         }
 
         private static record FieldRecord(String name, int ordinal, Class<?> type) {

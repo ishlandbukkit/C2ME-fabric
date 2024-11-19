@@ -59,7 +59,7 @@ public class DFTWeirdScaledSamplerNode implements AstNode {
 
     @Override
     public void doBytecodeGenSingle(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
-        String inputMethod = context.newSingleMethod(this.input);
+        BytecodeGen.Context.ValuesMethodDefD inputMethod = context.newSingleMethod(this.input);
         String noiseField = context.newField(DensityFunction.Noise.class, this.noise);
         int scale = localVarConsumer.createLocalVariable("scale", Type.DOUBLE_TYPE.getDescriptor());
 
@@ -120,7 +120,7 @@ public class DFTWeirdScaledSamplerNode implements AstNode {
 
     @Override
     public void doBytecodeGenMulti(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
-        String inputMethod = context.newMultiMethod(this.input);
+        BytecodeGen.Context.ValuesMethodDefD inputMethod = context.newMultiMethod(this.input);
         String noiseField = context.newField(DensityFunction.Noise.class, this.noise);
 
         context.callDelegateMulti(m, inputMethod);

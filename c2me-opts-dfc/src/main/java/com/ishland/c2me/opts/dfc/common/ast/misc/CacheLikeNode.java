@@ -73,7 +73,7 @@ public class CacheLikeNode implements AstNode {
 
     @Override
     public void doBytecodeGenSingle(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
-        String delegateMethod = context.newSingleMethod(this.delegate);
+        BytecodeGen.Context.ValuesMethodDefD delegateMethod = context.newSingleMethod(this.delegate);
         String cacheLikeField = context.newField(IFastCacheLike.class, this.cacheLike);
         genPostprocessingMethod(context, cacheLikeField);
 
@@ -123,7 +123,7 @@ public class CacheLikeNode implements AstNode {
 
     @Override
     public void doBytecodeGenMulti(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
-        String delegateMethod = context.newMultiMethod(this.delegate);
+        BytecodeGen.Context.ValuesMethodDefD delegateMethod = context.newMultiMethod(this.delegate);
         String cacheLikeField = context.newField(IFastCacheLike.class, this.cacheLike);
 
         genPostprocessingMethod(context, cacheLikeField);
@@ -164,8 +164,8 @@ public class CacheLikeNode implements AstNode {
 
     private void genPostprocessingMethod(BytecodeGen.Context context, String cacheLikeField) {
         String methodName = String.format("postProcessing_%s", cacheLikeField);
-        String delegateSingle = context.newSingleMethod(this.delegate);
-        String delegateMulti = context.newMultiMethod(this.delegate);
+        String delegateSingle = context.newSingleMethodUnoptimized(this.delegate);
+        String delegateMulti = context.newMultiMethodUnoptimized(this.delegate);
         context.genPostprocessingMethod(methodName, m -> {
             Label cacheExists = new Label();
 

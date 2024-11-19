@@ -76,9 +76,9 @@ public class ShiftedNoiseNode implements AstNode {
     public void doBytecodeGenSingle(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
         String noiseField = context.newField(Noise.class, this.noise);
 
-        String shiftXMethod = context.newSingleMethod(this.shiftX);
-        String shiftYMethod = context.newSingleMethod(this.shiftY);
-        String shiftZMethod = context.newSingleMethod(this.shiftZ);
+        BytecodeGen.Context.ValuesMethodDefD shiftXMethod = context.newSingleMethod(this.shiftX);
+        BytecodeGen.Context.ValuesMethodDefD shiftYMethod = context.newSingleMethod(this.shiftY);
+        BytecodeGen.Context.ValuesMethodDefD shiftZMethod = context.newSingleMethod(this.shiftZ);
 
         m.load(0, InstructionAdapter.OBJECT_TYPE);
         m.getfield(context.className, noiseField, Type.getDescriptor(Noise.class));
@@ -117,9 +117,9 @@ public class ShiftedNoiseNode implements AstNode {
     public void doBytecodeGenMulti(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
         String noiseField = context.newField(Noise.class, this.noise);
 
-        String shiftXMethod = context.newMultiMethod(this.shiftX);
-        String shiftYMethod = context.newMultiMethod(this.shiftY);
-        String shiftZMethod = context.newMultiMethod(this.shiftZ);
+        BytecodeGen.Context.ValuesMethodDefD shiftXMethod = context.newMultiMethod(this.shiftX);
+        BytecodeGen.Context.ValuesMethodDefD shiftYMethod = context.newMultiMethod(this.shiftY);
+        BytecodeGen.Context.ValuesMethodDefD shiftZMethod = context.newMultiMethod(this.shiftZ);
 
         int res1 = localVarConsumer.createLocalVariable("res1", Type.getDescriptor(double[].class));
         int res2 = localVarConsumer.createLocalVariable("res2", Type.getDescriptor(double[].class));
@@ -139,24 +139,8 @@ public class ShiftedNoiseNode implements AstNode {
         m.store(res2, InstructionAdapter.OBJECT_TYPE);
 
         context.callDelegateMulti(m, shiftXMethod);
-
-        m.load(0, InstructionAdapter.OBJECT_TYPE);
-        m.load(res1, InstructionAdapter.OBJECT_TYPE);
-        m.load(2, InstructionAdapter.OBJECT_TYPE);
-        m.load(3, InstructionAdapter.OBJECT_TYPE);
-        m.load(4, InstructionAdapter.OBJECT_TYPE);
-        m.load(5, InstructionAdapter.OBJECT_TYPE);
-        m.load(6, InstructionAdapter.OBJECT_TYPE);
-        m.invokevirtual(context.className, shiftYMethod, BytecodeGen.Context.MULTI_DESC, false);
-
-        m.load(0, InstructionAdapter.OBJECT_TYPE);
-        m.load(res2, InstructionAdapter.OBJECT_TYPE);
-        m.load(2, InstructionAdapter.OBJECT_TYPE);
-        m.load(3, InstructionAdapter.OBJECT_TYPE);
-        m.load(4, InstructionAdapter.OBJECT_TYPE);
-        m.load(5, InstructionAdapter.OBJECT_TYPE);
-        m.load(6, InstructionAdapter.OBJECT_TYPE);
-        m.invokevirtual(context.className, shiftZMethod, BytecodeGen.Context.MULTI_DESC, false);
+        context.callDelegateMulti(m, shiftYMethod, res1);
+        context.callDelegateMulti(m, shiftZMethod, res2);
 
         context.doCountedLoop(m, localVarConsumer, idx -> {
             m.load(1, InstructionAdapter.OBJECT_TYPE);

@@ -70,13 +70,13 @@ public abstract class AbstractUnaryNode implements AstNode {
 
     @Override
     public void doBytecodeGenSingle(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
-        String operandMethod = context.newSingleMethod(this.operand);
+        BytecodeGen.Context.ValuesMethodDefD operandMethod = context.newSingleMethod(this.operand);
         context.callDelegateSingle(m, operandMethod);
     }
 
     @Override
     public void doBytecodeGenMulti(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
-        String operandMethod = context.newMultiMethod(this.operand);
+        BytecodeGen.Context.ValuesMethodDefD operandMethod = context.newMultiMethod(this.operand);
         context.callDelegateMulti(m, operandMethod);
     }
 }
