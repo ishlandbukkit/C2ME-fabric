@@ -478,6 +478,10 @@ public class BytecodeGen {
             return name;
         }
 
+        public String newField(Object data) {
+            return this.newField((Class) data.getClass(), data);
+        }
+
         public void doCountedLoop(InstructionAdapter m, LocalVarConsumer localVarConsumer, IntConsumer bodyGenerator) {
             int loopIdx = localVarConsumer.createLocalVariable("loopIdx", Type.INT_TYPE.getDescriptor());
             m.iconst(0);
