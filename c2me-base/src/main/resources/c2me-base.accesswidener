@@ -55,6 +55,9 @@ accessible    class    net/minecraft/world/gen/chunk/ChunkNoiseSampler$BlendAlph
 accessible    class    net/minecraft/world/gen/chunk/ChunkNoiseSampler$BlendOffsetDensityFunction
 accessible    class    net/minecraft/world/gen/chunk/ChunkNoiseSampler$CellCache
 accessible    class    net/minecraft/world/gen/densityfunction/DensityFunctions$CaveScaler
+accessible    class    net/minecraft/world/gen/blockpredicate/CombinedBlockPredicate
+accessible    class    net/minecraft/world/gen/blockpredicate/AllOfBlockPredicate
+accessible    class    net/minecraft/world/gen/blockpredicate/AnyOfBlockPredicate
 
 extendable    class    net/minecraft/client/option/SimpleOption
 extendable    class    net/minecraft/world/storage/RegionBasedStorage

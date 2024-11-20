@@ -19,12 +19,13 @@ import java.util.Map;
 import java.util.SequencedMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 @Mixin(StorageIoWorker.class)
 public abstract class MixinStorageIoWorker implements IDirectStorage {
 
-    @Shadow protected abstract <T> CompletableFuture<T> run(Supplier<Either<T, Exception>> task);
+    @Shadow protected abstract <T> CompletableFuture<T> run(Supplier<T> task);
 
     @Shadow @Final private SequencedMap<ChunkPos, StorageIoWorker.Result> results;
 
@@ -32,26 +33,28 @@ public abstract class MixinStorageIoWorker implements IDirectStorage {
 
     @Override
     public CompletableFuture<Void> setRawChunkData(ChunkPos pos, byte[] data) {
-        return this.run(() -> this.c2me$setRawChunkData0(pos, data));
+        return this.run(() -> this.c2me$setRawChunkData0(pos, data)).thenCompose(Function.identity());
     }
 
     @Unique
-    private @NotNull Either<Void, Exception> c2me$setRawChunkData0(ChunkPos pos, byte[] data) {
+    private @NotNull CompletableFuture<Void> c2me$setRawChunkData0(ChunkPos pos, byte[] data) {
         StorageIoWorker.Result result = this.results.get(pos);
         try {
             final RegionFile regionFile = ((IRegionBasedStorage) (Object) this.storage).invokeGetRegionFile(pos);
             try (final DataOutputStream out = regionFile.getChunkOutputStream(pos)) {
                 out.write(data);
             }
-            if (result != null) result.future.complete(null);
+            if (result != null) {
+                result.future.complete(null);
+            }
         } catch (IOException e) {
-            return Either.right(e);
+            return CompletableFuture.failedFuture(e);
         }
-        return Either.left(null);
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override
     public CompletableFuture<Void> setRawChunkData(ChunkPos pos, CompletableFuture<byte[]> data) {
-        return this.run(() -> this.c2me$setRawChunkData0(pos, data.toCompletableFuture().join()));
+        return this.run(() -> this.c2me$setRawChunkData0(pos, data.toCompletableFuture().join())).thenCompose(Function.identity());
     }
 }

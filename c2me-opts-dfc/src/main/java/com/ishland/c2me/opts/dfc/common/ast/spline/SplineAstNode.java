@@ -416,34 +416,7 @@ public class SplineAstNode implements AstNode {
 
     @Override
     public void doBytecodeGenMulti(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
-        String singleMethod = context.newSingleMethod(this);
-        context.doCountedLoop(m, localVarConsumer, idx -> {
-            m.load(1, InstructionAdapter.OBJECT_TYPE);
-            m.load(idx, Type.INT_TYPE);
-
-            {
-                m.load(0, InstructionAdapter.OBJECT_TYPE);
-                m.load(2, InstructionAdapter.OBJECT_TYPE);
-                m.load(idx, Type.INT_TYPE);
-                m.aload(Type.INT_TYPE);
-                m.load(3, InstructionAdapter.OBJECT_TYPE);
-                m.load(idx, Type.INT_TYPE);
-                m.aload(Type.INT_TYPE);
-                m.load(4, InstructionAdapter.OBJECT_TYPE);
-                m.load(idx, Type.INT_TYPE);
-                m.aload(Type.INT_TYPE);
-                m.load(5, InstructionAdapter.OBJECT_TYPE);
-
-                m.invokevirtual(
-                        context.className,
-                        singleMethod,
-                        BytecodeGen.Context.SINGLE_DESC,
-                        false
-                );
-            }
-
-            m.astore(Type.DOUBLE_TYPE);
-        });
+        context.delegateToSingle(m, localVarConsumer, this);
         m.areturn(Type.VOID_TYPE);
     }
 

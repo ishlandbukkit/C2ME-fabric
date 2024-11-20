@@ -58,6 +58,17 @@ public class Config {
                     """)
             .getBoolean(true, false);
 
+    public static final boolean fluidPostProcessingToScheduledTick = new ConfigSystem.ConfigAccessor()
+            .key("chunkSystem.fluidPostProcessingToScheduledTick")
+            .comment("""
+                    Whether to turn fluid postprocessing into scheduled tick
+                    
+                    Fluid post-processing is very expensive when loading in new chunks, and this can affect
+                    MSPT significantly. This option delays fluid post-processing to scheduled tick to hopefully
+                    mitigate this issue.
+                    """)
+            .getBoolean(true, false);
+
     public static void init() {
         // intentionally empty
     }

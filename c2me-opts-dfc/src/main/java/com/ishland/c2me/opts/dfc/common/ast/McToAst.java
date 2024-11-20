@@ -2,7 +2,9 @@ package com.ishland.c2me.opts.dfc.common.ast;
 
 import com.ishland.c2me.opts.dfc.common.ast.binary.AddNode;
 import com.ishland.c2me.opts.dfc.common.ast.binary.MaxNode;
+import com.ishland.c2me.opts.dfc.common.ast.binary.MaxShortNode;
 import com.ishland.c2me.opts.dfc.common.ast.binary.MinNode;
+import com.ishland.c2me.opts.dfc.common.ast.binary.MinShortNode;
 import com.ishland.c2me.opts.dfc.common.ast.binary.MulNode;
 import com.ishland.c2me.opts.dfc.common.ast.misc.CacheLikeNode;
 import com.ishland.c2me.opts.dfc.common.ast.misc.ConstantNode;
@@ -29,8 +31,6 @@ import net.minecraft.world.gen.densityfunction.DensityFunction;
 import net.minecraft.world.gen.densityfunction.DensityFunctionTypes;
 
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.LongAdder;
 
 public class McToAst {
 
@@ -48,8 +48,22 @@ public class McToAst {
             case DensityFunctionTypes.BinaryOperationLike f -> switch (f.type()) {
                 case ADD -> new AddNode(toAst(f.argument1()), toAst(f.argument2()));
                 case MUL -> new MulNode(toAst(f.argument1()), toAst(f.argument2()));
-                case MIN -> new MinNode(toAst(f.argument1()), toAst(f.argument2()));
-                case MAX -> new MaxNode(toAst(f.argument1()), toAst(f.argument2()));
+                case MIN -> {
+                    double rightMin = f.argument2().minValue();
+                    if (f.argument1().minValue() < rightMin) {
+                        yield new MinShortNode(toAst(f.argument1()), toAst(f.argument2()), rightMin);
+                    } else {
+                        yield new MinNode(toAst(f.argument1()), toAst(f.argument2()));
+                    }
+                }
+                case MAX -> {
+                    double rightMax = f.argument2().maxValue();
+                    if (f.argument1().maxValue() > rightMax) {
+                        yield new MaxShortNode(toAst(f.argument1()), toAst(f.argument2()), rightMax);
+                    } else {
+                        yield new MaxNode(toAst(f.argument1()), toAst(f.argument2()));
+                    }
+                }
             };
             case DensityFunctionTypes.BlendDensity f -> toAst(f.input());
             case DensityFunctionTypes.Clamp f -> new MaxNode(new ConstantNode(f.minValue()), new MinNode(new ConstantNode(f.maxValue()), toAst(f.input())));

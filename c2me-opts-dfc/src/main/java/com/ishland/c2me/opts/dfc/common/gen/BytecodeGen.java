@@ -3,6 +3,7 @@ package com.ishland.c2me.opts.dfc.common.gen;
 import com.ishland.c2me.opts.dfc.common.ast.AstNode;
 import com.ishland.c2me.opts.dfc.common.ast.EvalType;
 import com.ishland.c2me.opts.dfc.common.ast.McToAst;
+import com.ishland.c2me.opts.dfc.common.ast.dfvisitor.StripBlending;
 import com.ishland.c2me.opts.dfc.common.ast.misc.ConstantNode;
 import com.ishland.c2me.opts.dfc.common.ast.misc.RootNode;
 import com.ishland.c2me.opts.dfc.common.util.ArrayCache;
@@ -78,7 +79,7 @@ public class BytecodeGen {
             AstNode ast = vif.getAstNode();
             return new CompiledDensityFunction(compile0(ast), vif.getBlendingFallback());
         }
-        AstNode ast = McToAst.toAst(densityFunction);
+        AstNode ast = McToAst.toAst(densityFunction.apply(StripBlending.INSTANCE));
         if (ast instanceof ConstantNode constantNode) {
             return DensityFunctionTypes.constant(constantNode.getValue());
         }
@@ -496,6 +497,37 @@ public class BytecodeGen {
             m.iinc(loopIdx, 1);
             m.goTo(start);
             m.visitLabel(end);
+        }
+
+        public void delegateToSingle(InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer, AstNode current) {
+            String singleMethod = this.newSingleMethod(current);
+            this.doCountedLoop(m, localVarConsumer, idx -> {
+                m.load(1, InstructionAdapter.OBJECT_TYPE);
+                m.load(idx, Type.INT_TYPE);
+
+                {
+                    m.load(0, InstructionAdapter.OBJECT_TYPE);
+                    m.load(2, InstructionAdapter.OBJECT_TYPE);
+                    m.load(idx, Type.INT_TYPE);
+                    m.aload(Type.INT_TYPE);
+                    m.load(3, InstructionAdapter.OBJECT_TYPE);
+                    m.load(idx, Type.INT_TYPE);
+                    m.aload(Type.INT_TYPE);
+                    m.load(4, InstructionAdapter.OBJECT_TYPE);
+                    m.load(idx, Type.INT_TYPE);
+                    m.aload(Type.INT_TYPE);
+                    m.load(5, InstructionAdapter.OBJECT_TYPE);
+
+                    m.invokevirtual(
+                            this.className,
+                            singleMethod,
+                            BytecodeGen.Context.SINGLE_DESC,
+                            false
+                    );
+                }
+
+                m.astore(Type.DOUBLE_TYPE);
+            });
         }
 
         public void genPostprocessingMethod(String name, Consumer<InstructionAdapter> generator) {

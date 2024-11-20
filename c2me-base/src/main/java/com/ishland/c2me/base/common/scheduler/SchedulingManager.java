@@ -105,8 +105,9 @@ public class SchedulingManager {
     private int getPriority(long pos) {
         final int fromLevel = getPriorityFromMap(pos);
         int fromSyncLoad;
-        if (currentSyncLoad != null) {
-            final int chebyshevDistance = chebyshev(new ChunkPos(pos), currentSyncLoad);
+        ChunkPos currentSyncLoad1 = currentSyncLoad;
+        if (currentSyncLoad1 != null) {
+            final int chebyshevDistance = chebyshev(new ChunkPos(pos), currentSyncLoad1);
             if (chebyshevDistance <= 8) {
                 fromSyncLoad = chebyshevDistance;
 //                System.out.println("dist for chunk [%d,%d] is %d".formatted(currentSyncLoad.x, currentSyncLoad.z, chebyshevDistance));

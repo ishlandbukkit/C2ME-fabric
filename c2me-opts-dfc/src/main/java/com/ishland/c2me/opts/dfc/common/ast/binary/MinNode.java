@@ -6,7 +6,7 @@ import com.ishland.c2me.opts.dfc.common.gen.BytecodeGen;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.InstructionAdapter;
 
-public class MinNode extends AbstractBinaryNode { // missed optimization: left < right.minValue
+public class MinNode extends AbstractBinaryNode {
 
     public MinNode(AstNode left, AstNode right) {
         super(left, right);
