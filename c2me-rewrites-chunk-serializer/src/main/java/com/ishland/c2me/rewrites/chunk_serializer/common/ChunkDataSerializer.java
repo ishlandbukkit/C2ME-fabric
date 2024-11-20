@@ -717,7 +717,7 @@ public final class ChunkDataSerializer {
         }
 
         Direction direction = structurePiece.getFacing();
-        writer.putInt(STRING_O, direction == null ? -1 : direction.getHorizontal());
+        writer.putInt(STRING_O, direction == null ? -1 : direction.getHorizontalQuarterTurns());
         writer.putInt(STRING_GD, structurePiece.getChainLength());
         // FML, didn't think about this one
         // this.writeNbt(context, nbtCompound);
