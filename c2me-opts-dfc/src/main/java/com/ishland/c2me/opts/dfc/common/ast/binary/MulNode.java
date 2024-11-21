@@ -37,54 +37,88 @@ public class MulNode extends AbstractBinaryNode {
         BytecodeGen.Context.ValuesMethodDefD leftMethod = context.newSingleMethod(this.left);
         BytecodeGen.Context.ValuesMethodDefD rightMethod = context.newSingleMethod(this.right);
 
-        Label notZero = new Label();
+        if (leftMethod.isConst()) {
+            if (leftMethod.constValue() == 0.0) {
+                m.dconst(0.0);
+            } else {
+                m.dconst(leftMethod.constValue());
+                context.callDelegateSingle(m, rightMethod);
+                m.mul(Type.DOUBLE_TYPE);
+            }
+        } else {
+            Label notZero = new Label();
 
-        context.callDelegateSingle(m, leftMethod);
-        m.dup2();
-        m.dconst(0.0);
-        m.cmpl(Type.DOUBLE_TYPE);
-        m.ifne(notZero);
-        m.dconst(0.0);
-        m.areturn(Type.DOUBLE_TYPE);
+            context.callDelegateSingle(m, leftMethod);
+            m.dup2();
+            m.dconst(0.0);
+            m.cmpl(Type.DOUBLE_TYPE);
+            m.ifne(notZero);
+            m.dconst(0.0);
+            m.areturn(Type.DOUBLE_TYPE);
 
-        m.visitLabel(notZero);
-        context.callDelegateSingle(m, rightMethod);
-        m.mul(Type.DOUBLE_TYPE);
+            m.visitLabel(notZero);
+            context.callDelegateSingle(m, rightMethod);
+            m.mul(Type.DOUBLE_TYPE);
+        }
+
         m.areturn(Type.DOUBLE_TYPE);
     }
 
     @Override
     public void doBytecodeGenMulti(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
         BytecodeGen.Context.ValuesMethodDefD leftMethod = context.newMultiMethod(this.left);
-        BytecodeGen.Context.ValuesMethodDefD rightMethodSingle = context.newSingleMethod(this.right);
-        context.callDelegateMulti(m, leftMethod);
+        if (leftMethod.isConst()) {
+            if (leftMethod.constValue() == 0.0) {
+                context.callDelegateMulti(m, leftMethod);
+            } else {
+                BytecodeGen.Context.ValuesMethodDefD rightMethod = context.newMultiMethod(this.right);
 
-        context.doCountedLoop(m, localVarConsumer, idx -> {
-            Label minLabel = new Label();
-            Label end = new Label();
+                context.callDelegateMulti(m, rightMethod);
 
-            m.load(1, InstructionAdapter.OBJECT_TYPE);
-            m.load(idx, Type.INT_TYPE);
+                context.doCountedLoop(m, localVarConsumer, idx -> {
+                    m.load(1, InstructionAdapter.OBJECT_TYPE);
+                    m.load(idx, Type.INT_TYPE);
 
-            m.load(1, InstructionAdapter.OBJECT_TYPE);
-            m.load(idx, Type.INT_TYPE);
-            m.aload(Type.DOUBLE_TYPE);
+                    m.dconst(leftMethod.constValue());
+                    m.load(1, InstructionAdapter.OBJECT_TYPE);
+                    m.load(idx, Type.INT_TYPE);
+                    m.aload(Type.DOUBLE_TYPE);
+                    m.mul(Type.DOUBLE_TYPE);
 
-            m.dup2();
-            m.dconst(0.0);
-            m.cmpl(Type.DOUBLE_TYPE);
-            m.ifne(minLabel);
-            m.pop2();
-            m.dconst(0.0);
-            m.goTo(end);
+                    m.astore(Type.DOUBLE_TYPE);
+                });
+            }
+        } else {
+            BytecodeGen.Context.ValuesMethodDefD rightMethodSingle = context.newSingleMethod(this.right);
+            context.callDelegateMulti(m, leftMethod);
 
-            m.visitLabel(minLabel);
-            context.callDelegateSingleFromMulti(m, rightMethodSingle, idx);
-            m.mul(Type.DOUBLE_TYPE);
+            context.doCountedLoop(m, localVarConsumer, idx -> {
+                Label minLabel = new Label();
+                Label end = new Label();
 
-            m.visitLabel(end);
-            m.astore(Type.DOUBLE_TYPE);
-        });
+                m.load(1, InstructionAdapter.OBJECT_TYPE);
+                m.load(idx, Type.INT_TYPE);
+
+                m.load(1, InstructionAdapter.OBJECT_TYPE);
+                m.load(idx, Type.INT_TYPE);
+                m.aload(Type.DOUBLE_TYPE);
+
+                m.dup2();
+                m.dconst(0.0);
+                m.cmpl(Type.DOUBLE_TYPE);
+                m.ifne(minLabel);
+                m.pop2();
+                m.dconst(0.0);
+                m.goTo(end);
+
+                m.visitLabel(minLabel);
+                context.callDelegateSingleFromMulti(m, rightMethodSingle, idx);
+                m.mul(Type.DOUBLE_TYPE);
+
+                m.visitLabel(end);
+                m.astore(Type.DOUBLE_TYPE);
+            });
+        }
 
         m.areturn(Type.VOID_TYPE);
     }
