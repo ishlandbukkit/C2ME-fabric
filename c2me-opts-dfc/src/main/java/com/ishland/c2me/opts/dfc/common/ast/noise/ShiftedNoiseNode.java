@@ -83,26 +83,38 @@ public class ShiftedNoiseNode implements AstNode {
         m.load(0, InstructionAdapter.OBJECT_TYPE);
         m.getfield(context.className, noiseField, Type.getDescriptor(Noise.class));
 
-        m.load(1, Type.INT_TYPE);
-        m.cast(Type.INT_TYPE, Type.DOUBLE_TYPE);
-        m.dconst(this.xzScale);
-        m.mul(Type.DOUBLE_TYPE);
-        context.callDelegateSingle(m, shiftXMethod);
-        m.add(Type.DOUBLE_TYPE);
+        if (this.xzScale == 0.0 && shiftXMethod.isConst() && shiftXMethod.constValue() == 0.0) {
+            m.dconst(0.0);
+        } else {
+            m.load(1, Type.INT_TYPE);
+            m.cast(Type.INT_TYPE, Type.DOUBLE_TYPE);
+            m.dconst(this.xzScale);
+            m.mul(Type.DOUBLE_TYPE);
+            context.callDelegateSingle(m, shiftXMethod);
+            m.add(Type.DOUBLE_TYPE);
+        }
 
-        m.load(2, Type.INT_TYPE);
-        m.cast(Type.INT_TYPE, Type.DOUBLE_TYPE);
-        m.dconst(this.yScale);
-        m.mul(Type.DOUBLE_TYPE);
-        context.callDelegateSingle(m, shiftYMethod);
-        m.add(Type.DOUBLE_TYPE);
+        if (this.yScale == 0.0 && shiftYMethod.isConst() && shiftYMethod.constValue() == 0.0) {
+            m.dconst(0.0);
+        } else {
+            m.load(2, Type.INT_TYPE);
+            m.cast(Type.INT_TYPE, Type.DOUBLE_TYPE);
+            m.dconst(this.yScale);
+            m.mul(Type.DOUBLE_TYPE);
+            context.callDelegateSingle(m, shiftYMethod);
+            m.add(Type.DOUBLE_TYPE);
+        }
 
-        m.load(3, Type.INT_TYPE);
-        m.cast(Type.INT_TYPE, Type.DOUBLE_TYPE);
-        m.dconst(this.xzScale);
-        m.mul(Type.DOUBLE_TYPE);
-        context.callDelegateSingle(m, shiftZMethod);
-        m.add(Type.DOUBLE_TYPE);
+        if (this.xzScale == 0.0 && shiftZMethod.isConst() && shiftZMethod.constValue() == 0.0) {
+            m.dconst(0.0);
+        } else {
+            m.load(3, Type.INT_TYPE);
+            m.cast(Type.INT_TYPE, Type.DOUBLE_TYPE);
+            m.dconst(this.xzScale);
+            m.mul(Type.DOUBLE_TYPE);
+            context.callDelegateSingle(m, shiftZMethod);
+            m.add(Type.DOUBLE_TYPE);
+        }
 
         m.invokevirtual(
                 Type.getInternalName(Noise.class),
@@ -120,27 +132,44 @@ public class ShiftedNoiseNode implements AstNode {
         BytecodeGen.Context.ValuesMethodDefD shiftXMethod = context.newMultiMethod(this.shiftX);
         BytecodeGen.Context.ValuesMethodDefD shiftYMethod = context.newMultiMethod(this.shiftY);
         BytecodeGen.Context.ValuesMethodDefD shiftZMethod = context.newMultiMethod(this.shiftZ);
+        boolean eliminatedX = this.xzScale == 0.0 && shiftXMethod.isConst() && shiftXMethod.constValue() == 0.0;
+        boolean eliminatedY = this.yScale == 0.0 && shiftYMethod.isConst() && shiftYMethod.constValue() == 0.0;
+        boolean eliminatedZ = this.xzScale == 0.0 && shiftZMethod.isConst() && shiftZMethod.constValue() == 0.0;
+        int arraysNeeded = (!eliminatedX ? 1 : 0) + (!eliminatedY ? 1 : 0) + (!eliminatedZ ? 1 : 0);
 
-        int res1 = localVarConsumer.createLocalVariable("res1", Type.getDescriptor(double[].class));
-        int res2 = localVarConsumer.createLocalVariable("res2", Type.getDescriptor(double[].class));
+        int[] arrays = new int[arraysNeeded];
+        arrays[0] = 1;
+        if (arraysNeeded >= 2) {
+            arrays[1] = localVarConsumer.createLocalVariable("res1", Type.getDescriptor(double[].class));
+            m.load(6, InstructionAdapter.OBJECT_TYPE);
+            m.load(1, InstructionAdapter.OBJECT_TYPE);
+            m.arraylength();
+            m.iconst(0);
+            m.invokevirtual(Type.getInternalName(ArrayCache.class), "getDoubleArray", Type.getMethodDescriptor(Type.getType(double[].class), Type.INT_TYPE, Type.BOOLEAN_TYPE), false);
+            m.store(arrays[1], InstructionAdapter.OBJECT_TYPE);
+        }
+        if (arraysNeeded >= 3) {
+            arrays[2] = localVarConsumer.createLocalVariable("res2", Type.getDescriptor(double[].class));
+            m.load(6, InstructionAdapter.OBJECT_TYPE);
+            m.load(1, InstructionAdapter.OBJECT_TYPE);
+            m.arraylength();
+            m.iconst(0);
+            m.invokevirtual(Type.getInternalName(ArrayCache.class), "getDoubleArray", Type.getMethodDescriptor(Type.getType(double[].class), Type.INT_TYPE, Type.BOOLEAN_TYPE), false);
+            m.store(arrays[2], InstructionAdapter.OBJECT_TYPE);
+        }
 
-        m.load(6, InstructionAdapter.OBJECT_TYPE);
-        m.load(1, InstructionAdapter.OBJECT_TYPE);
-        m.arraylength();
-        m.iconst(0);
-        m.invokevirtual(Type.getInternalName(ArrayCache.class), "getDoubleArray", Type.getMethodDescriptor(Type.getType(double[].class), Type.INT_TYPE, Type.BOOLEAN_TYPE), false);
-        m.store(res1, InstructionAdapter.OBJECT_TYPE);
-
-        m.load(6, InstructionAdapter.OBJECT_TYPE);
-        m.load(1, InstructionAdapter.OBJECT_TYPE);
-        m.arraylength();
-        m.iconst(0);
-        m.invokevirtual(Type.getInternalName(ArrayCache.class), "getDoubleArray", Type.getMethodDescriptor(Type.getType(double[].class), Type.INT_TYPE, Type.BOOLEAN_TYPE), false);
-        m.store(res2, InstructionAdapter.OBJECT_TYPE);
-
-        context.callDelegateMulti(m, shiftXMethod);
-        context.callDelegateMulti(m, shiftYMethod, res1);
-        context.callDelegateMulti(m, shiftZMethod, res2);
+        {
+            int arrIdx = 0;
+            if (!eliminatedX) {
+                context.callDelegateMulti(m, shiftXMethod, arrays[arrIdx ++]);
+            }
+            if (!eliminatedY) {
+                context.callDelegateMulti(m, shiftYMethod, arrays[arrIdx ++]);
+            }
+            if (!eliminatedZ) {
+                context.callDelegateMulti(m, shiftZMethod, arrays[arrIdx ++]);
+            }
+        }
 
         context.doCountedLoop(m, localVarConsumer, idx -> {
             m.load(1, InstructionAdapter.OBJECT_TYPE);
@@ -150,38 +179,51 @@ public class ShiftedNoiseNode implements AstNode {
                 m.load(0, InstructionAdapter.OBJECT_TYPE);
                 m.getfield(context.className, noiseField, Type.getDescriptor(Noise.class));
 
-                m.load(2, InstructionAdapter.OBJECT_TYPE);
-                m.load(idx, Type.INT_TYPE);
-                m.aload(Type.INT_TYPE);
-                m.cast(Type.INT_TYPE, Type.DOUBLE_TYPE);
-                m.dconst(this.xzScale);
-                m.mul(Type.DOUBLE_TYPE);
-                m.load(1, InstructionAdapter.OBJECT_TYPE);
-                m.load(idx, Type.INT_TYPE);
-                m.aload(Type.DOUBLE_TYPE);
-                m.add(Type.DOUBLE_TYPE);
+                int arrIdx = 0;
+                if (!eliminatedX) {
+                    m.load(2, InstructionAdapter.OBJECT_TYPE);
+                    m.load(idx, Type.INT_TYPE);
+                    m.aload(Type.INT_TYPE);
+                    m.cast(Type.INT_TYPE, Type.DOUBLE_TYPE);
+                    m.dconst(this.xzScale);
+                    m.mul(Type.DOUBLE_TYPE);
+                    m.load(arrays[arrIdx ++], InstructionAdapter.OBJECT_TYPE);
+                    m.load(idx, Type.INT_TYPE);
+                    m.aload(Type.DOUBLE_TYPE);
+                    m.add(Type.DOUBLE_TYPE);
+                } else {
+                    m.dconst(0.0);
+                }
 
-                m.load(3, InstructionAdapter.OBJECT_TYPE);
-                m.load(idx, Type.INT_TYPE);
-                m.aload(Type.INT_TYPE);
-                m.cast(Type.INT_TYPE, Type.DOUBLE_TYPE);
-                m.dconst(this.yScale);
-                m.mul(Type.DOUBLE_TYPE);
-                m.load(res1, InstructionAdapter.OBJECT_TYPE);
-                m.load(idx, Type.INT_TYPE);
-                m.aload(Type.DOUBLE_TYPE);
-                m.add(Type.DOUBLE_TYPE);
+                if (!eliminatedY) {
+                    m.load(3, InstructionAdapter.OBJECT_TYPE);
+                    m.load(idx, Type.INT_TYPE);
+                    m.aload(Type.INT_TYPE);
+                    m.cast(Type.INT_TYPE, Type.DOUBLE_TYPE);
+                    m.dconst(this.yScale);
+                    m.mul(Type.DOUBLE_TYPE);
+                    m.load(arrays[arrIdx ++], InstructionAdapter.OBJECT_TYPE);
+                    m.load(idx, Type.INT_TYPE);
+                    m.aload(Type.DOUBLE_TYPE);
+                    m.add(Type.DOUBLE_TYPE);
+                } else {
+                    m.dconst(0.0);
+                }
 
-                m.load(4, InstructionAdapter.OBJECT_TYPE);
-                m.load(idx, Type.INT_TYPE);
-                m.aload(Type.INT_TYPE);
-                m.cast(Type.INT_TYPE, Type.DOUBLE_TYPE);
-                m.dconst(this.xzScale);
-                m.mul(Type.DOUBLE_TYPE);
-                m.load(res2, InstructionAdapter.OBJECT_TYPE);
-                m.load(idx, Type.INT_TYPE);
-                m.aload(Type.DOUBLE_TYPE);
-                m.add(Type.DOUBLE_TYPE);
+                if (!eliminatedZ) {
+                    m.load(4, InstructionAdapter.OBJECT_TYPE);
+                    m.load(idx, Type.INT_TYPE);
+                    m.aload(Type.INT_TYPE);
+                    m.cast(Type.INT_TYPE, Type.DOUBLE_TYPE);
+                    m.dconst(this.xzScale);
+                    m.mul(Type.DOUBLE_TYPE);
+                    m.load(arrays[arrIdx ++], InstructionAdapter.OBJECT_TYPE);
+                    m.load(idx, Type.INT_TYPE);
+                    m.aload(Type.DOUBLE_TYPE);
+                    m.add(Type.DOUBLE_TYPE);
+                } else {
+                    m.dconst(0.0);
+                }
 
                 m.invokevirtual(
                         Type.getInternalName(Noise.class),
@@ -195,13 +237,11 @@ public class ShiftedNoiseNode implements AstNode {
 
         });
 
-        m.load(6, InstructionAdapter.OBJECT_TYPE);
-        m.load(res1, InstructionAdapter.OBJECT_TYPE);
-        m.invokevirtual(Type.getInternalName(ArrayCache.class), "recycle", Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(double[].class)), false);
-
-        m.load(6, InstructionAdapter.OBJECT_TYPE);
-        m.load(res2, InstructionAdapter.OBJECT_TYPE);
-        m.invokevirtual(Type.getInternalName(ArrayCache.class), "recycle", Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(double[].class)), false);
+        for (int i = 1; i < arrays.length; i ++) {
+            m.load(6, InstructionAdapter.OBJECT_TYPE);
+            m.load(arrays[i], InstructionAdapter.OBJECT_TYPE);
+            m.invokevirtual(Type.getInternalName(ArrayCache.class), "recycle", Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(double[].class)), false);
+        }
 
         m.areturn(Type.VOID_TYPE);
     }
