@@ -9,7 +9,7 @@ import java.util.Objects;
 
 public abstract class AbstractUnaryNode implements AstNode {
 
-    protected final AstNode operand;
+    public final AstNode operand;
 
     public AbstractUnaryNode(AstNode operand) {
         this.operand = Objects.requireNonNull(operand);

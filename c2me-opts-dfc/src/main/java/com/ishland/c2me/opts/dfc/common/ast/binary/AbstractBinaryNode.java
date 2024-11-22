@@ -11,8 +11,8 @@ import java.util.Objects;
 
 public abstract class AbstractBinaryNode implements AstNode {
 
-    protected final AstNode left;
-    protected final AstNode right;
+    public final AstNode left;
+    public final AstNode right;
 
     public AbstractBinaryNode(AstNode left, AstNode right) {
         this.left = Objects.requireNonNull(left);

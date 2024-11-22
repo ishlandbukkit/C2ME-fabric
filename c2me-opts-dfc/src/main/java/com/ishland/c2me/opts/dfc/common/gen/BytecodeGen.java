@@ -3,7 +3,6 @@ package com.ishland.c2me.opts.dfc.common.gen;
 import com.ishland.c2me.opts.dfc.common.ast.AstNode;
 import com.ishland.c2me.opts.dfc.common.ast.EvalType;
 import com.ishland.c2me.opts.dfc.common.ast.McToAst;
-import com.ishland.c2me.opts.dfc.common.ast.dfvisitor.StripBlending;
 import com.ishland.c2me.opts.dfc.common.ast.misc.ConstantNode;
 import com.ishland.c2me.opts.dfc.common.ast.misc.RootNode;
 import com.ishland.c2me.opts.dfc.common.ast.misc.YClampedGradientNode;
@@ -11,6 +10,7 @@ import com.ishland.c2me.opts.dfc.common.ast.noise.DFTNoiseNode;
 import com.ishland.c2me.opts.dfc.common.ast.noise.DFTShiftANode;
 import com.ishland.c2me.opts.dfc.common.ast.noise.DFTShiftBNode;
 import com.ishland.c2me.opts.dfc.common.ast.noise.DFTShiftNode;
+import com.ishland.c2me.opts.dfc.common.ast.opto.OptoPasses;
 import com.ishland.c2me.opts.dfc.common.util.ArrayCache;
 import com.ishland.c2me.opts.dfc.common.vif.AstVanillaInterface;
 import it.unimi.dsi.fastutil.Hash;
@@ -85,7 +85,7 @@ public class BytecodeGen {
             AstNode ast = vif.getAstNode();
             return new CompiledDensityFunction(compile0(ast), vif.getBlendingFallback());
         }
-        AstNode ast = McToAst.toAst(densityFunction.apply(StripBlending.INSTANCE));
+        AstNode ast = OptoPasses.optimize(McToAst.toAst(densityFunction));
         if (ast instanceof ConstantNode constantNode) {
             return DensityFunctionTypes.constant(constantNode.getValue());
         } else if (ast instanceof DFTNoiseNode ||

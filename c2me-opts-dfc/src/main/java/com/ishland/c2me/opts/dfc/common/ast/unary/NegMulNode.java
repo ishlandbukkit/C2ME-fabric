@@ -9,7 +9,7 @@ import org.objectweb.asm.commons.InstructionAdapter;
 
 public class NegMulNode extends AbstractUnaryNode {
 
-    private final double negMul;
+    public final double negMul;
 
     public NegMulNode(AstNode operand, double negMul) {
         super(operand);
