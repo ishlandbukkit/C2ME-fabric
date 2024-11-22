@@ -79,7 +79,7 @@ public class BytecodeGen {
             AstNode ast = vif.getAstNode();
             return new CompiledDensityFunction(compile0(ast), vif.getBlendingFallback());
         }
-        AstNode ast = McToAst.toAst(densityFunction.apply(StripBlending.INSTANCE));
+        AstNode ast = McToAst.toAst(densityFunction);
         if (ast instanceof ConstantNode constantNode) {
             return DensityFunctionTypes.constant(constantNode.getValue());
         }
