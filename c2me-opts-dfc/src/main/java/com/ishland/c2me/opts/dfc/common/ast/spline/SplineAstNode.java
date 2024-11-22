@@ -9,6 +9,8 @@ import com.ishland.c2me.opts.dfc.common.vif.NoisePosVanillaInterface;
 import com.ishland.flowsched.util.Assertions;
 import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.ints.IntObjectPair;
+import it.unimi.dsi.fastutil.objects.Reference2ReferenceMap;
+import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Spline;
@@ -22,14 +24,22 @@ import org.objectweb.asm.commons.InstructionAdapter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 public class SplineAstNode implements AstNode {
 
     public static final String SPLINE_METHOD_DESC = Type.getMethodDescriptor(Type.getType(float.class), Type.getType(int.class), Type.getType(int.class), Type.getType(int.class), Type.getType(EvalType.class));
     private final Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> spline;
+    private final Reference2ReferenceMap<DensityFunctionTypes.Spline.DensityFunctionWrapper, AstNode> children = new Reference2ReferenceOpenHashMap<>();
 
     public SplineAstNode(Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> spline) {
         this.spline = spline;
+        this.populateChildrenMap(this.spline);
+    }
+
+    private SplineAstNode(Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> spline, Reference2ReferenceMap<DensityFunctionTypes.Spline.DensityFunctionWrapper, AstNode> children) {
+        this.spline = spline;
+        this.children.putAll(children);
     }
 
     @Override
@@ -46,12 +56,26 @@ public class SplineAstNode implements AstNode {
 
     @Override
     public AstNode[] getChildren() {
-        return new AstNode[0];
+        return this.children.values().toArray(AstNode[]::new);
     }
 
     @Override
     public AstNode transform(AstTransformer transformer) {
-        return transformer.transform(this);
+        boolean isModified = false;
+        Reference2ReferenceMap<DensityFunctionTypes.Spline.DensityFunctionWrapper, AstNode> modified = new Reference2ReferenceOpenHashMap<>(this.children);
+        for (Map.Entry<DensityFunctionTypes.Spline.DensityFunctionWrapper, AstNode> entry : modified.entrySet()) {
+            AstNode node = entry.getValue();
+            AstNode transformed = node.transform(transformer);
+            if (node != transformed) {
+                isModified = true;
+                entry.setValue(transformed);
+            }
+        }
+        if (isModified) {
+            return transformer.transform(new SplineAstNode(this.spline, modified));
+        } else {
+            return transformer.transform(this);
+        }
     }
 
     @Override
@@ -62,7 +86,7 @@ public class SplineAstNode implements AstNode {
         m.areturn(Type.DOUBLE_TYPE);
     }
 
-    private static BytecodeGen.Context.ValuesMethodDefF doBytecodeGenSpline(BytecodeGen.Context context, Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> spline) {
+    private BytecodeGen.Context.ValuesMethodDefF doBytecodeGenSpline(BytecodeGen.Context context, Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> spline) {
         {
             String cachedSplineMethod = context.getCachedSplineMethod(spline);
             if (cachedSplineMethod != null) {
@@ -111,7 +135,7 @@ public class SplineAstNode implements AstNode {
 
             int lastConst = impl.locations().length - 1;
 
-            BytecodeGen.Context.ValuesMethodDefD locationFunction = context.newSingleMethod(McToAst.toAst(impl.locationFunction().function().value()));
+            BytecodeGen.Context.ValuesMethodDefD locationFunction = context.newSingleMethod(this.children.get(impl.locationFunction()));
             context.callDelegateSingle(m, locationFunction);
             m.cast(Type.DOUBLE_TYPE, Type.FLOAT_TYPE);
             m.store(point, Type.FLOAT_TYPE);
@@ -417,8 +441,20 @@ public class SplineAstNode implements AstNode {
         m.areturn(Type.VOID_TYPE);
     }
 
+    private void populateChildrenMap(Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> a) {
+        if (a instanceof Spline.Implementation<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> a1) {
+            for (Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> spline : a1.values()) {
+                populateChildrenMap(spline);
+            }
+            DensityFunctionTypes.Spline.DensityFunctionWrapper locationFunction = a1.locationFunction();
+            this.children.put(locationFunction, McToAst.toAst(locationFunction.function().value()));
+        }
+    }
+
     private static boolean deepEquals(Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> a,
-                                      Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> b) {
+                                      Reference2ReferenceMap<DensityFunctionTypes.Spline.DensityFunctionWrapper, AstNode> childrenA,
+                                      Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> b,
+                                      Reference2ReferenceMap<DensityFunctionTypes.Spline.DensityFunctionWrapper, AstNode> childrenB) {
         if (a instanceof Spline.FixedFloatFunction<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> a1 &&
                 b instanceof Spline.FixedFloatFunction<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> b1) {
             return a1.value() == b1.value();
@@ -427,11 +463,11 @@ public class SplineAstNode implements AstNode {
             boolean equals1 = Arrays.equals(a1.derivatives(), b1.derivatives()) &&
                     Arrays.equals(a1.locations(), b1.locations()) &&
                     a1.values().size() == b1.values().size() &&
-                    McToAst.toAst(a1.locationFunction().function().value()).equals(McToAst.toAst(b1.locationFunction().function().value()));
+                    childrenA.get(a1.locationFunction()).equals(childrenB.get(b1.locationFunction()));
             if (!equals1) return false;
             int size = a1.values().size();
             for (int i = 0; i < size; i++) {
-                if (!deepEquals(a1.values().get(i), b1.values().get(i))) {
+                if (!deepEquals(a1.values().get(i), childrenA, b1.values().get(i), childrenB)) {
                     return false;
                 }
             }
@@ -443,18 +479,20 @@ public class SplineAstNode implements AstNode {
     }
 
     private static boolean deepRelaxedEquals(Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> a,
-                                      Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> b) {
+                                             Reference2ReferenceMap<DensityFunctionTypes.Spline.DensityFunctionWrapper, AstNode> childrenA,
+                                             Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> b,
+                                             Reference2ReferenceMap<DensityFunctionTypes.Spline.DensityFunctionWrapper, AstNode> childrenB) {
         if (a instanceof Spline.FixedFloatFunction<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> a1 &&
                 b instanceof Spline.FixedFloatFunction<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> b1) {
             return a1.value() == b1.value();
         } else if (a instanceof Spline.Implementation<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> a1 &&
                 b instanceof Spline.Implementation<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> b1) {
             boolean equals1 = a1.values().size() == b1.values().size() &&
-                    McToAst.toAst(a1.locationFunction().function().value()).relaxedEquals(McToAst.toAst(b1.locationFunction().function().value()));
+                    childrenA.get(a1.locationFunction()).relaxedEquals(childrenB.get(b1.locationFunction()));
             if (!equals1) return false;
             int size = a1.values().size();
             for (int i = 0; i < size; i++) {
-                if (!deepRelaxedEquals(a1.values().get(i), b1.values().get(i))) {
+                if (!deepRelaxedEquals(a1.values().get(i), childrenA, b1.values().get(i), childrenB)) {
                     return false;
                 }
             }
@@ -465,7 +503,7 @@ public class SplineAstNode implements AstNode {
         }
     }
 
-    private static int deepHashcode(Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> a) {
+    private static int deepHashcode(Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> a, Reference2ReferenceMap<DensityFunctionTypes.Spline.DensityFunctionWrapper, AstNode> childrenA) {
         if (a instanceof Spline.FixedFloatFunction<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> a1) {
             return Float.hashCode(a1.value());
         } else if (a instanceof Spline.Implementation<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> a1) {
@@ -474,9 +512,9 @@ public class SplineAstNode implements AstNode {
             result = 31 * result + Arrays.hashCode(a1.derivatives());
             result = 31 * result + Arrays.hashCode(a1.locations());
             for (Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> spline : a1.values()) {
-                result = 31 * result + deepHashcode(spline);
+                result = 31 * result + deepHashcode(spline, childrenA);
             }
-            result = 31 * result + McToAst.toAst(a1.locationFunction().function().value()).hashCode();
+            result = 31 * result + childrenA.get(a1.locationFunction()).hashCode();
 
             return result;
         } else {
@@ -484,16 +522,16 @@ public class SplineAstNode implements AstNode {
         }
     }
 
-    private static int deepRelaxedHashcode(Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> a) {
+    private static int deepRelaxedHashcode(Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> a, Reference2ReferenceMap<DensityFunctionTypes.Spline.DensityFunctionWrapper, AstNode> childrenA) {
         if (a instanceof Spline.FixedFloatFunction<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> a1) {
             return Float.hashCode(a1.value());
         } else if (a instanceof Spline.Implementation<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> a1) {
             int result = 1;
 
             for (Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> spline : a1.values()) {
-                result = 31 * result + deepRelaxedHashcode(spline);
+                result = 31 * result + deepRelaxedHashcode(spline, childrenA);
             }
-            result = 31 * result + McToAst.toAst(a1.locationFunction().function().value()).relaxedHashCode();
+            result = 31 * result + childrenA.get(a1.locationFunction()).relaxedHashCode();
 
             return result;
         } else {
@@ -506,12 +544,12 @@ public class SplineAstNode implements AstNode {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         SplineAstNode that = (SplineAstNode) o;
-        return deepEquals(this.spline, that.spline);
+        return deepEquals(this.spline, this.children, that.spline, that.children);
     }
 
     @Override
     public int hashCode() {
-        return deepHashcode(this.spline);
+        return deepHashcode(this.spline, this.children);
     }
 
     @Override
@@ -519,11 +557,11 @@ public class SplineAstNode implements AstNode {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         SplineAstNode that = (SplineAstNode) o;
-        return deepRelaxedEquals(this.spline, that.spline);
+        return deepRelaxedEquals(this.spline, this.children, that.spline, that.children);
     }
 
     @Override
     public int relaxedHashCode() {
-        return deepRelaxedHashcode(this.spline);
+        return deepRelaxedHashcode(this.spline, this.children);
     }
 }
