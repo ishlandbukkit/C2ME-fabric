@@ -1,11 +1,9 @@
 package com.ishland.c2me.notickvd.mixin;
 
-import com.ishland.c2me.notickvd.common.IChunkTicketManager;
-import com.ishland.c2me.notickvd.common.NoOPTickingMap;
+import com.ishland.c2me.notickvd.common.ChunkTicketManagerExtension;
 import com.ishland.c2me.notickvd.common.NoTickSystem;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ChunkTicket;
 import net.minecraft.server.world.ChunkTicketManager;
 import net.minecraft.server.world.ServerChunkLoadingManager;
 import net.minecraft.util.math.ChunkSectionPos;
@@ -22,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ChunkTicketManager.class)
-public class MixinChunkTicketManager implements IChunkTicketManager {
+public class MixinChunkTicketManager implements ChunkTicketManagerExtension {
 
     @Shadow private long age;
     @Mutable
@@ -66,18 +64,6 @@ public class MixinChunkTicketManager implements IChunkTicketManager {
         this.noTickSystem.tick(chunkStorage);
     }
 
-    @Inject(method = "addTicket(JLnet/minecraft/server/world/ChunkTicket;)V", at = @At("RETURN"))
-    private void onAddTicket(long position, ChunkTicket<?> ticket, CallbackInfo ci) {
-//        if (ticket.getType() != ChunkTicketType.UNKNOWN) System.err.printf("Added ticket (%s) at %s\n", ticket, new ChunkPos(position));
-        this.noTickSystem.onTicketAdded(position, ticket);
-    }
-
-    @Inject(method = "removeTicket(JLnet/minecraft/server/world/ChunkTicket;)V", at = @At("RETURN"))
-    private void onRemoveTicket(long pos, ChunkTicket<?> ticket, CallbackInfo ci) {
-//        if (ticket.getType() != ChunkTicketType.UNKNOWN) System.err.printf("Removed ticket (%s) at %s\n", ticket, new ChunkPos(pos));
-        this.noTickSystem.onTicketRemoved(pos, ticket);
-    }
-
     /**
      * @author ishland
      * @reason remap setSimulationDistance to the normal one
@@ -104,7 +90,7 @@ public class MixinChunkTicketManager implements IChunkTicketManager {
 
     @Override
     @Unique
-    public int getNoTickPendingTicketUpdates() {
-        return this.noTickSystem.getPendingNoTickTicketUpdatesCount();
+    public long getPendingLoadsCount() {
+        return this.noTickSystem.getPendingLoadsCount();
     }
 }

@@ -49,7 +49,7 @@ public class DoublePerlinNoiseAccuracy extends AbstractAccuracy {
         double original = invokeVanilla(x, y, z);
         for (int i = 0; i < this.MHs.length; i ++) {
             double actual = invokeNative(this.MHs[i], x, y, z);
-            int ulpDiff = ulpDistance(original, actual);
+            long ulpDiff = ulpDistance(original, actual);
             if (ulpDiff > this.maxUlp[i]) {
                 this.maxUlp[i] = ulpDiff;
                 System.out.println(String.format("%s: new max error %d ulps at x=%.18g, y=%.18g, z=%.18g (expected %.18g but got %.18g)", this.targets[i], ulpDiff, x, y, z, original, actual));

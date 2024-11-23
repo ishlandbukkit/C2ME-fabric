@@ -2,8 +2,7 @@ package com.ishland.c2me.notickvd.mixin;
 
 import com.ishland.c2me.base.mixin.access.IServerChunkManager;
 import com.ishland.c2me.notickvd.common.Config;
-import com.ishland.c2me.notickvd.common.IChunkTicketManager;
-import com.ishland.c2me.notickvd.common.PlayerNoTickDistanceMap;
+import com.ishland.c2me.notickvd.common.ChunkTicketManagerExtension;
 import com.llamalad7.mixinextras.injector.WrapWithCondition;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ChunkHolder;
@@ -41,7 +40,7 @@ public abstract class MixinThreadedAnvilChunkStorage {
 
     @ModifyArg(method = "setViewDistance", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/MathHelper;clamp(III)I"), index = 2)
     private int modifyMaxVD(int max) {
-        return PlayerNoTickDistanceMap.MAX_RENDER_DISTANCE;
+        return Config.maxViewDistance;
     }
 
     @Redirect(method = "getPostProcessedChunk", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/world/ChunkHolder;getPostProcessedChunk()Lnet/minecraft/world/chunk/WorldChunk;"))
@@ -90,8 +89,8 @@ public abstract class MixinThreadedAnvilChunkStorage {
         if (chunk instanceof WorldChunk worldChunk) {
             final ServerWorld serverWorld = (ServerWorld) worldChunk.getWorld();
             final IServerChunkManager serverChunkManager = (IServerChunkManager) serverWorld.getChunkManager();
-            final IChunkTicketManager ticketManager =
-                    (IChunkTicketManager) serverChunkManager.getTicketManager();
+            final ChunkTicketManagerExtension ticketManager =
+                    (ChunkTicketManagerExtension) serverChunkManager.getTicketManager();
             cir.setReturnValue(cir.getReturnValueZ() && !ticketManager.getNoTickOnlyChunks().contains(chunk.getPos().toLong()));
         }
     }
