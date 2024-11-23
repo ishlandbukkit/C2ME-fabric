@@ -52,9 +52,9 @@ public class DelegateNode implements AstNode {
 
     @Override
     public void doBytecodeGenSingle(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
-        String newField = context.newField(this.densityFunction);
+        String newField = context.newField(DensityFunction.class, this.densityFunction);
         m.load(0, InstructionAdapter.OBJECT_TYPE);
-        m.getfield(context.className, newField, Type.getDescriptor(this.densityFunction.getClass()));
+        m.getfield(context.className, newField, Type.getDescriptor(DensityFunction.class));
         m.anew(Type.getType(NoisePosVanillaInterface.class));
         m.dup();
         m.load(1, Type.INT_TYPE);
