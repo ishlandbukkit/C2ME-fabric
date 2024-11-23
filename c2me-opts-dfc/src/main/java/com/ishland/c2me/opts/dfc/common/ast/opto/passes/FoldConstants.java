@@ -64,12 +64,12 @@ public class FoldConstants implements AstTransformer {
                 yield maxNode;
             }
             case MaxShortNode maxShortNode -> {
-                if (maxShortNode.left instanceof ConstantNode c1 && maxShortNode.right instanceof ConstantNode c2) {
-                    yield new ConstantNode(Math.max(c1.getValue(), c2.getValue()));
-                }
-
                 if (maxShortNode.left instanceof ConstantNode c1 && c1.getValue() >= maxShortNode.rightMax) {
                     yield c1;
+                }
+
+                if (maxShortNode.left instanceof ConstantNode || maxShortNode.right instanceof ConstantNode) {
+                    yield new MaxNode(maxShortNode.left, maxShortNode.right);
                 }
 
                 yield maxShortNode;
@@ -82,12 +82,12 @@ public class FoldConstants implements AstTransformer {
                 yield minNode;
             }
             case MinShortNode minShortNode -> {
-                if (minShortNode.left instanceof ConstantNode c1 && minShortNode.right instanceof ConstantNode c2) {
-                    yield new ConstantNode(Math.min(c1.getValue(), c2.getValue()));
-                }
-
                 if (minShortNode.left instanceof ConstantNode c1 && c1.getValue() <= minShortNode.rightMin) {
                     yield c1;
+                }
+
+                if (minShortNode.left instanceof ConstantNode || minShortNode.right instanceof ConstantNode) {
+                    yield new MinNode(minShortNode.left, minShortNode.right);
                 }
 
                 yield minShortNode;
