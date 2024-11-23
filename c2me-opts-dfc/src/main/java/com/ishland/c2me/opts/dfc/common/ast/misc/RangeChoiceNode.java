@@ -12,11 +12,11 @@ import java.util.Objects;
 
 public class RangeChoiceNode implements AstNode {
 
-    private final AstNode input;
-    private final double minInclusive;
-    private final double maxExclusive;
-    private final AstNode whenInRange;
-    private final AstNode whenOutOfRange;
+    public final AstNode input;
+    public final double minInclusive;
+    public final double maxExclusive;
+    public final AstNode whenInRange;
+    public final AstNode whenOutOfRange;
 
     public RangeChoiceNode(AstNode input, double minInclusive, double maxExclusive, AstNode whenInRange, AstNode whenOutOfRange) {
         this.input = Objects.requireNonNull(input);
