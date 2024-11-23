@@ -30,6 +30,9 @@ public class EndIslandsAccuracy extends AbstractAccuracy {
     }
 
     private float invokeNative(MethodHandle handle, int x, int z) {
+        if ((int) (x * x + z * z) < 0) {
+            return Float.NaN;
+        }
         try {
             return (float) handle.invokeExact(nativeSamplerPtr, x, z);
         } catch (Throwable e) {
@@ -48,7 +51,7 @@ public class EndIslandsAccuracy extends AbstractAccuracy {
         float original = invokeVanilla(x, z);
         for (int i = 0; i < this.MHs.length; i ++) {
             float actual = invokeNative(this.MHs[i], x, z);
-            int ulpDiff = ulpDistance(original, actual);
+            long ulpDiff = ulpDistance(original, actual);
             if (ulpDiff > this.maxUlp[i]) {
                 this.maxUlp[i] = ulpDiff;
                 System.out.println(String.format("%s: new max error %d ulps at x=%d, z=%d (expected %.10g but got %.10g)", this.targets[i], ulpDiff, x, z, original, actual));

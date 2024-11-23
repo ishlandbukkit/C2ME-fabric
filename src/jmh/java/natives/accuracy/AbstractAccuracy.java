@@ -10,32 +10,56 @@ public abstract class AbstractAccuracy {
 
     protected final ISATarget[] targets;
     protected final MethodHandle[] MHs;
-    protected final int[] maxUlp;
+    protected final long[] maxUlp;
 
     protected AbstractAccuracy(ISATarget[] targets, MethodHandle template, String prefix) {
         this.targets = Arrays.stream(targets).filter(ISATarget::isNativelySupported).toArray(ISATarget[]::new);
         this.MHs = Arrays.stream(this.targets)
                 .map(isaTarget -> template.bindTo(NativeLoader.lookup.find(prefix + isaTarget.getSuffix()).get()))
                 .toArray(MethodHandle[]::new);
-        this.maxUlp = new int[this.targets.length];
+        this.maxUlp = new long[this.targets.length];
     }
 
-    protected static int ulpDistance(double original, double that) {
-        int dist = 0;
+    protected static long ulpDistance(double original, double that) {
+        long dist = 0;
+        if (original > that) {
+            double tmp = that;
+            that = original;
+            original = tmp;
+        }
         while (that > original) {
             that = Math.nextAfter(that, original);
             dist ++;
         }
+        if (dist == 0 && !equals(original, that)) {
+            return Long.MAX_VALUE;
+        }
         return dist;
     }
 
-    protected static int ulpDistance(float original, float that) {
-        int dist = 0;
+    private static boolean equals(double original, double that) {
+        return (Double.isNaN(original) && Double.isNaN(that)) || original == that;
+    }
+
+    protected static long ulpDistance(float original, float that) {
+        long dist = 0;
+        if (original > that) {
+            float tmp = that;
+            that = original;
+            original = tmp;
+        }
         while (that > original) {
             that = Math.nextAfter(that, original);
             dist ++;
         }
+        if (dist == 0 && !equals(original, that)) {
+            return Long.MAX_VALUE;
+        }
         return dist;
+    }
+
+    private static boolean equals(float original, float that) {
+        return (Float.isNaN(original) && Float.isNaN(that)) || original == that;
     }
 
     protected void printUlps() {
