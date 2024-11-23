@@ -78,6 +78,9 @@ public class Bindings {
     }
 
     public static float c2me_natives_end_islands_sample(long data_ptr, int x, int z) {
+        if ((int) (x * x + z * z) < 0) { // workaround some compiler bugs
+            return Float.NaN;
+        }
         try {
             return (float) MH_c2me_natives_end_islands_sample_ptr.invokeExact(data_ptr, x, z);
         } catch (Throwable e) {
