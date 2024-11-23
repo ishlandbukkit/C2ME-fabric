@@ -9,7 +9,7 @@ import org.objectweb.asm.commons.InstructionAdapter;
 
 public class MaxShortNode extends AbstractBinaryNode {
 
-    private final double rightMax;
+    public final double rightMax;
 
     public MaxShortNode(AstNode left, AstNode right, double rightMax) {
         super(left, right);
@@ -33,6 +33,11 @@ public class MaxShortNode extends AbstractBinaryNode {
         for (int i = 0; i < res.length; i++) {
             res[i] = res[i] >= this.rightMax ? res[i] : Math.max(res[i], this.right.evalSingle(x[i], y[i], z[i], type));
         }
+    }
+
+    @Override
+    public boolean canSwapOperandsSafely() {
+        return false;
     }
 
     @Override

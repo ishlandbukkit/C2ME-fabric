@@ -9,7 +9,7 @@ import org.objectweb.asm.commons.InstructionAdapter;
 
 public class MinShortNode extends AbstractBinaryNode {
 
-    private final double rightMin;
+    public final double rightMin;
 
     public MinShortNode(AstNode left, AstNode right, double rightMin) {
         super(left, right);
@@ -33,6 +33,11 @@ public class MinShortNode extends AbstractBinaryNode {
         for (int i = 0; i < res.length; i++) {
             res[i] = res[i] <= this.rightMin ? res[i] : Math.min(res[i], this.right.evalSingle(x[i], y[i], z[i], type));
         }
+    }
+
+    @Override
+    public boolean canSwapOperandsSafely() {
+        return false;
     }
 
     @Override
