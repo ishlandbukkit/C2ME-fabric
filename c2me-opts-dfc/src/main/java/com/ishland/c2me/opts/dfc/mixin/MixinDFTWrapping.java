@@ -45,6 +45,14 @@ public abstract class MixinDFTWrapping implements IFastCacheLike, IEqualityOverr
     }
 
     @Override
+    public boolean c2me$isActualCache() {
+        return switch (this.type()) {
+            case FLAT_CACHE, CACHE_ALL_IN_CELL, CACHE2D, CACHE_ONCE -> true;
+            default -> false;
+        };
+    }
+
+    @Override
     public DensityFunction c2me$getDelegate() {
         return this.wrapped;
     }

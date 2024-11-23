@@ -64,6 +64,11 @@ public abstract class MixinChunkNoiseSamplerFlatCache implements IFastCacheLike 
     }
 
     @Override
+    public boolean c2me$isActualCache() {
+        return true;
+    }
+
+    @Override
     public DensityFunction c2me$getDelegate() {
         return this.delegate;
     }

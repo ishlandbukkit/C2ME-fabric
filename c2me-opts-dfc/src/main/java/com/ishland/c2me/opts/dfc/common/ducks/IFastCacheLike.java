@@ -15,6 +15,8 @@ public interface IFastCacheLike extends DensityFunction {
 
     void c2me$cache(double[] res, int[] x, int[] y, int[] z, EvalType evalType);
 
+    boolean c2me$isActualCache();
+
     DensityFunction c2me$getDelegate();
 
     // called by generated code

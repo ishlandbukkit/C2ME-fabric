@@ -6,6 +6,7 @@ import com.ishland.c2me.opts.dfc.common.ast.binary.AddNode;
 import com.ishland.c2me.opts.dfc.common.ast.binary.MaxNode;
 import com.ishland.c2me.opts.dfc.common.ast.binary.MinNode;
 import com.ishland.c2me.opts.dfc.common.ast.binary.MulNode;
+import com.ishland.c2me.opts.dfc.common.ast.misc.CacheLikeNode;
 import com.ishland.c2me.opts.dfc.common.ast.misc.ConstantNode;
 import com.ishland.c2me.opts.dfc.common.ast.unary.AbsNode;
 import com.ishland.c2me.opts.dfc.common.ast.unary.CubeNode;
@@ -30,12 +31,9 @@ public class FoldConstants implements AstTransformer {
                     yield new ConstantNode(c1.getValue() + c2.getValue());
                 }
 
+                // TreeNormalization: const left
                 if (addNode.left instanceof ConstantNode c && c.getValue() == 0.0 && !ZeroUtils.isPositiveZero(c.getValue())) {
                     yield addNode.right;
-                }
-
-                if (addNode.right instanceof ConstantNode c && c.getValue() == 0.0 && !ZeroUtils.isPositiveZero(c.getValue())) {
-                    yield addNode.left;
                 }
 
                 yield addNode;
@@ -49,12 +47,9 @@ public class FoldConstants implements AstTransformer {
                     yield new ConstantNode(0.0);
                 }
 
+                // TreeNormalization: const left
                 if (mulNode.left instanceof ConstantNode c && c.getValue() == 1.0) {
                     yield mulNode.right;
-                }
-
-                if (mulNode.right instanceof ConstantNode c && c.getValue() == 1.0) {
-                    yield mulNode.left;
                 }
 
                 yield mulNode;
@@ -108,6 +103,13 @@ public class FoldConstants implements AstTransformer {
                 }
 
                 yield squeezeNode;
+            }
+            case CacheLikeNode cacheLikeNode -> {
+                if (cacheLikeNode.getCacheLike().c2me$isActualCache() && cacheLikeNode.getDelegate() instanceof ConstantNode c) {
+                    yield c;
+                }
+
+                yield cacheLikeNode;
             }
             case null -> throw new NullPointerException();
             default -> astNode;

@@ -165,6 +165,11 @@ public abstract class MixinChunkNoiseSamplerDensityInterpolator implements IFast
     }
 
     @Override
+    public boolean c2me$isActualCache() {
+        return false;
+    }
+
+    @Override
     public DensityFunction c2me$getDelegate() {
         return this.delegate;
     }

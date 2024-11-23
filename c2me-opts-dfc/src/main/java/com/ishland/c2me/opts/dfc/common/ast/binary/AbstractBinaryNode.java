@@ -75,6 +75,10 @@ public abstract class AbstractBinaryNode implements AstNode {
         }
     }
 
+    public AstNode swapOperands() {
+        return newInstance(this.right, this.left);
+    }
+
     @Override
     public void doBytecodeGenSingle(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
         BytecodeGen.Context.ValuesMethodDefD leftMethod = context.newSingleMethod(this.left);
