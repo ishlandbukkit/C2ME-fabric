@@ -97,27 +97,33 @@ public abstract class AbstractBinaryNode implements AstNode {
         BytecodeGen.Context.ValuesMethodDefD leftMethod = context.newMultiMethod(this.left);
         BytecodeGen.Context.ValuesMethodDefD rightMethod = context.newMultiMethod(this.right);
 
-        int res1 = localVarConsumer.createLocalVariable("res1", Type.getDescriptor(double[].class));
+        if (leftMethod.isConst()) {
+            context.callDelegateMulti(m, rightMethod);
+            context.doCountedLoop(m, localVarConsumer, idx -> bytecodeGenConstMultiBody(m, idx, leftMethod.constValue()));
+        } else {
+            int res1 = localVarConsumer.createLocalVariable("res1", Type.getDescriptor(double[].class));
 
-        m.load(6, InstructionAdapter.OBJECT_TYPE);
-        m.load(1, InstructionAdapter.OBJECT_TYPE);
-        m.arraylength();
-        m.iconst(0);
-        m.invokevirtual(Type.getInternalName(ArrayCache.class), "getDoubleArray", Type.getMethodDescriptor(Type.getType(double[].class), Type.INT_TYPE, Type.BOOLEAN_TYPE), false);
-        m.store(res1, InstructionAdapter.OBJECT_TYPE);
-        context.callDelegateMulti(m, leftMethod);
-        context.callDelegateMulti(m, rightMethod, res1);
+            m.load(6, InstructionAdapter.OBJECT_TYPE);
+            m.load(1, InstructionAdapter.OBJECT_TYPE);
+            m.arraylength();
+            m.iconst(0);
+            m.invokevirtual(Type.getInternalName(ArrayCache.class), "getDoubleArray", Type.getMethodDescriptor(Type.getType(double[].class), Type.INT_TYPE, Type.BOOLEAN_TYPE), false);
+            m.store(res1, InstructionAdapter.OBJECT_TYPE);
+            context.callDelegateMulti(m, leftMethod);
+            context.callDelegateMulti(m, rightMethod, res1);
 
-        context.doCountedLoop(m, localVarConsumer, idx -> bytecodeGenMultiBody(m, idx, res1));
+            context.doCountedLoop(m, localVarConsumer, idx -> bytecodeGenMultiBody(m, idx, res1));
 
-        m.load(6, InstructionAdapter.OBJECT_TYPE);
-        m.load(res1, InstructionAdapter.OBJECT_TYPE);
-        m.invokevirtual(Type.getInternalName(ArrayCache.class), "recycle", Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(double[].class)), false);
+            m.load(6, InstructionAdapter.OBJECT_TYPE);
+            m.load(res1, InstructionAdapter.OBJECT_TYPE);
+            m.invokevirtual(Type.getInternalName(ArrayCache.class), "recycle", Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(double[].class)), false);
+        }
 
         m.areturn(Type.VOID_TYPE);
     }
 
     protected abstract void bytecodeGenMultiBody(InstructionAdapter m, int idx, int res1);
 
+    protected abstract void bytecodeGenConstMultiBody(InstructionAdapter m, int idx, double constLeft);
 
 }

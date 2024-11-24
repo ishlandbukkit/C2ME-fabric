@@ -51,4 +51,16 @@ public class AddNode extends AbstractBinaryNode {
         m.add(Type.DOUBLE_TYPE);
         m.astore(Type.DOUBLE_TYPE);
     }
+
+    @Override
+    protected void bytecodeGenConstMultiBody(InstructionAdapter m, int idx, double constLeft) {
+        m.load(1, InstructionAdapter.OBJECT_TYPE);
+        m.load(idx, Type.INT_TYPE);
+        m.dconst(constLeft);
+        m.load(1, InstructionAdapter.OBJECT_TYPE);
+        m.load(idx, Type.INT_TYPE);
+        m.aload(Type.DOUBLE_TYPE);
+        m.add(Type.DOUBLE_TYPE);
+        m.astore(Type.DOUBLE_TYPE);
+    }
 }

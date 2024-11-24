@@ -127,4 +127,9 @@ public class MulNode extends AbstractBinaryNode {
     protected void bytecodeGenMultiBody(InstructionAdapter m, int idx, int res1) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    protected void bytecodeGenConstMultiBody(InstructionAdapter m, int idx, double constLeft) {
+        throw new UnsupportedOperationException();
+    }
 }
