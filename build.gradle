@@ -276,6 +276,10 @@ compileJmhJava {
     targetCompatibility = JavaVersion.VERSION_22
 }
 
+jmhJar {
+    zip64 = true;
+}
+
 jmh {
 //    includes = ['some regular expression'] // include pattern (regular expression) for benchmarks to be executed
 //    excludes = ['some regular expression'] // exclude pattern (regular expression) for benchmarks to be executed
