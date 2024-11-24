@@ -19,6 +19,6 @@ public class ModuleEntryPoint {
                     Chunk upgrades from pre-1.18 versions are not implemented and will
                     fall back to the unoptimized version of density functions.
                     """)
-            .getBoolean(false, false);
+            .getBoolean(true, false);
 
 }
