@@ -93,14 +93,14 @@ public class C2MEStorageThread extends Thread {
                     this.closeFuture.complete(null);
                     break;
                 } else {
-                    // attempt to spin-wait before sleeping
-                    if (!pollTasks()) {
-                        Thread.interrupted(); // clear interrupt flag
-                        for (int i = 0; i < 5000; i ++) {
-                            if (pollTasks() || this.closing.get()) continue main_loop;
-                            LockSupport.parkNanos("Spin-waiting for tasks", 10_000); // 100us
-                        }
-                    }
+//                    // attempt to spin-wait before sleeping
+//                    if (!pollTasks()) {
+//                        Thread.interrupted(); // clear interrupt flag
+//                        for (int i = 0; i < 5000; i ++) {
+//                            if (pollTasks() || this.closing.get()) continue main_loop;
+//                            LockSupport.parkNanos("Spin-waiting for tasks", 10_000); // 100us
+//                        }
+//                    }
                     synchronized (sync) {
                         if (this.taskSize.get() != 0 || this.closing.get()) continue main_loop;
                         try {
