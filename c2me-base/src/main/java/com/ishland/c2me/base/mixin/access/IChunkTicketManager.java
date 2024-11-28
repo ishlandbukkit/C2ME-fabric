@@ -7,6 +7,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ChunkTicket;
 import net.minecraft.server.world.ChunkTicketManager;
 import net.minecraft.util.collection.SortedArraySet;
+import net.minecraft.world.SimulationDistanceLevelPropagator;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
@@ -25,5 +26,8 @@ public interface IChunkTicketManager {
 
     @Accessor
     ChunkTicketManager.NearbyChunkTicketUpdater getNearbyChunkTicketUpdater();
+
+    @Accessor
+    SimulationDistanceLevelPropagator getSimulationDistanceTracker();
 
 }

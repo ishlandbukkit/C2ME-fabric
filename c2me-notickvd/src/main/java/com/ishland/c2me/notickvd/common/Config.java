@@ -35,20 +35,7 @@ public class Config {
                     " This will send chunks twice increasing network load")
             .getBoolean(false, true);
 
-    public static final long maxViewDistance = new ConfigSystem.ConfigAccessor()
-            .key("noTickViewDistance.maxViewDistance")
-            .comment("""
-                    Maximum view distance for no-tick view distance\s
-                    
-                    This allows you to specify the maximum view distance that no-tick view distance can support.\s
-                    The maximum supported is 1073741823 and the minimum that make sense is 32,\s
-                    This option is purely to save memory, as it needs to reserve memory for the maximum view distance\s
-                    
-                    Note: on the client side, `clientSideConfig.modifyMaxVDConfig.maxViewDistance` should also\s
-                    be increased to actually expose the view distance in video settings\s
-                    
-                    """)
-            .getLong(2048, 2048, ConfigSystem.LongChecks.POSITIVE_VALUES_ONLY);
+    public static final int maxViewDistance = 1 << 16;
 
     public static void init() {
     }

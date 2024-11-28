@@ -148,7 +148,19 @@ configure (allprojects - project(":tests")) {
         implementation "org.jctools:jctools-core:${jctools_version}"
         implementation annotationProcessor("com.github.bawnorton.mixinsquared:mixinsquared-fabric:${mixinsquared_version}")
         api "com.ishland.flowsched:flowsched"
+
+        testImplementation platform("org.junit:junit-bom:${junit_version}")
+        testImplementation 'org.junit.jupiter:junit-jupiter'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+        testImplementation "net.fabricmc:fabric-loader-junit:${project.loader_version}"
     }
+
+    test {
+        useJUnitPlatform()
+        workingDir getLayout().buildDirectory
+    }
+
+    jar.dependsOn test
 }
 
 subprojects {
