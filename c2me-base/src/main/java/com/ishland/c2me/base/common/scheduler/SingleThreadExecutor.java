@@ -28,14 +28,14 @@ public class SingleThreadExecutor extends Thread implements Executor {
                 return;
             }
 
-            // attempt to spin-wait before sleeping
-            if (!pollTasks()) {
-                Thread.interrupted(); // clear interrupt flag
-                for (int i = 0; i < 5000; i ++) {
-                    if (pollTasks()) continue main_loop;
-                    LockSupport.parkNanos("Spin-waiting for tasks", 10_000); // 100us
-                }
-            }
+//            // attempt to spin-wait before sleeping
+//            if (!pollTasks()) {
+//                Thread.interrupted(); // clear interrupt flag
+//                for (int i = 0; i < 5000; i ++) {
+//                    if (pollTasks()) continue main_loop;
+//                    LockSupport.parkNanos("Spin-waiting for tasks", 10_000); // 100us
+//                }
+//            }
 
             synchronized (sync) {
                 if (this.size.get() != 0 || this.shutdown.get()) continue main_loop;
