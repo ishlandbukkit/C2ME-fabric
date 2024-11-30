@@ -109,7 +109,7 @@ public class ServerAccessible extends NewChunkStatus {
             ((IThreadedAnvilChunkStorage) context.tacs()).setChunkHolderListDirty(true);
 
             if (needSendChunks()) {
-                sendChunkToPlayer(context.tacs(), context.holder());
+                context.holder().submitOp(CompletableFuture.runAsync(() -> sendChunkToPlayer(context.tacs(), context.holder()), ((IThreadedAnvilChunkStorage) context.tacs()).getMainThreadExecutor()));
             }
         }, ((IThreadedAnvilChunkStorage) context.tacs()).getMainThreadExecutor());
     }
