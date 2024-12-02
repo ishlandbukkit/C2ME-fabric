@@ -1,6 +1,7 @@
 package com.ishland.c2me.rewrites.chunksystem.mixin;
 
 import com.ishland.c2me.base.mixin.access.IThreadedAnvilChunkStorage;
+import com.ishland.c2me.rewrites.chunksystem.common.ducks.IChunkSystemAccess;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.server.world.ChunkHolder;
@@ -18,6 +19,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -64,6 +66,11 @@ public abstract class MixinServerChunkManager {
             return original.call(instance);
         }
         return false;
+    }
+
+    @Redirect(method = "isMissingForLevel", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/world/ChunkHolder;getLevel()I"))
+    private int replaceLevel(ChunkHolder instance) {
+        return ((IChunkSystemAccess) this.chunkLoadingManager).c2me$getTheChunkSystem().vanillaIf$getManagedLevel(instance.getPos().toLong());
     }
 
 }
