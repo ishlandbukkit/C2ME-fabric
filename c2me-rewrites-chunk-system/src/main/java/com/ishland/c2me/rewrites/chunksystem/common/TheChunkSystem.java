@@ -183,6 +183,10 @@ public class TheChunkSystem extends DaemonizedStatusAdvancingScheduler<ChunkPos,
         }
     }
 
+    public int vanillaIf$getManagedLevel(long pos) {
+        return this.managedTickets.get(pos);
+    }
+
     @Override
     public boolean tick() {
         boolean tick = super.tick();
