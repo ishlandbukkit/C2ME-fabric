@@ -3,6 +3,7 @@ package com.ishland.c2me.rewrites.chunksystem.common;
 import com.ishland.c2me.rewrites.chunksystem.common.statuses.ReadFromDisk;
 import com.ishland.c2me.rewrites.chunksystem.common.statuses.ReadFromDiskAsync;
 import com.ishland.c2me.rewrites.chunksystem.common.statuses.ServerAccessible;
+import com.ishland.c2me.rewrites.chunksystem.common.statuses.ServerAccessibleChunkSending;
 import com.ishland.c2me.rewrites.chunksystem.common.statuses.ServerBlockTicking;
 import com.ishland.c2me.rewrites.chunksystem.common.statuses.ServerEntityTicking;
 import com.ishland.c2me.rewrites.chunksystem.common.statuses.VanillaWorldGenerationDelegate;
@@ -33,6 +34,7 @@ public abstract class NewChunkStatus implements ItemStatus<ChunkPos, ChunkState,
     public static final NewChunkStatus DISK;
     private static final NewChunkStatus[] VANILLA_WORLDGEN_PIPELINE;
     public static final NewChunkStatus SERVER_ACCESSIBLE;
+    public static final NewChunkStatus SERVER_ACCESSIBLE_CHUNK_SENDING;
     public static final NewChunkStatus BLOCK_TICKING;
     public static final NewChunkStatus ENTITY_TICKING;
     public static final NewChunkStatus[] vanillaLevelToStatus;
@@ -74,6 +76,8 @@ public abstract class NewChunkStatus implements ItemStatus<ChunkPos, ChunkState,
         SERVER_ACCESSIBLE = new ServerAccessible(statuses.size());
         statuses.add(SERVER_ACCESSIBLE);
         VANILLA_WORLDGEN_PIPELINE[ChunkStatus.FULL.getIndex()] = SERVER_ACCESSIBLE;
+        SERVER_ACCESSIBLE_CHUNK_SENDING = new ServerAccessibleChunkSending(statuses.size());
+        statuses.add(SERVER_ACCESSIBLE_CHUNK_SENDING);
         BLOCK_TICKING = new ServerBlockTicking(statuses.size());
         statuses.add(BLOCK_TICKING);
         ENTITY_TICKING = new ServerEntityTicking(statuses.size());

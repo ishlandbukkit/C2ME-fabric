@@ -1,11 +1,9 @@
 package com.ishland.c2me.notickvd.common;
 
-import it.unimi.dsi.fastutil.longs.LongSet;
-
 public interface ChunkTicketManagerExtension {
 
-    LongSet getNoTickOnlyChunks();
+    long c2me$getPendingLoadsCount();
 
-    long getPendingLoadsCount();
+    void c2me$closeNoTickVD();
 
 }
