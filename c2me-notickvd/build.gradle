@@ -1,4 +1,5 @@
 moduleDependencies(project, [
         "c2me-base",
+        "c2me-rewrites-chunk-system",
 ])
 

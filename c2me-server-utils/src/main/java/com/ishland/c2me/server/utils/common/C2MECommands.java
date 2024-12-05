@@ -37,7 +37,7 @@ public class C2MECommands {
     private static int noTickCommand(CommandContext<ServerCommandSource> ctx) {
         final ServerChunkManager chunkManager = ctx.getSource().getWorld().toServerWorld().getChunkManager();
         final ChunkTicketManager ticketManager = ((IServerChunkManager) chunkManager).getTicketManager();
-        final long noTickPendingTicketUpdates = ((ChunkTicketManagerExtension) ticketManager).getPendingLoadsCount();
+        final long noTickPendingTicketUpdates = ((ChunkTicketManagerExtension) ticketManager).c2me$getPendingLoadsCount();
         ctx.getSource().sendFeedback(() -> Text.of(String.format("No-tick chunk pending chunk loads: %d", noTickPendingTicketUpdates)), true);
 
         return 0;

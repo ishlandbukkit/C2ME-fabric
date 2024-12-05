@@ -2,20 +2,16 @@ package com.ishland.c2me.notickvd.common;
 
 import com.ishland.c2me.base.common.GlobalExecutors;
 import it.unimi.dsi.fastutil.longs.LongSet;
-import net.minecraft.server.world.ChunkTicketManager;
 import net.minecraft.server.world.ServerChunkLoadingManager;
 import net.minecraft.util.math.ChunkPos;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class NoTickSystem {
-
-    private final ChunkTicketManager chunkTicketManager;
 
     private final PlayerNoTickLoader playerNoTickLoader;
     private final ConcurrentLinkedQueue<Runnable> pendingActionsOnScheduler = new ConcurrentLinkedQueue<>();
@@ -27,9 +23,8 @@ public class NoTickSystem {
     private volatile boolean pendingPurge = false;
     private volatile long age = 0;
 
-    public NoTickSystem(ChunkTicketManager chunkTicketManager) {
-        this.chunkTicketManager = chunkTicketManager;
-        this.playerNoTickLoader = new PlayerNoTickLoader(chunkTicketManager, this);
+    public NoTickSystem(ServerChunkLoadingManager tacs) {
+        this.playerNoTickLoader = new PlayerNoTickLoader(tacs, this);
     }
 
     public void addPlayerSource(ChunkPos chunkPos) {
@@ -52,11 +47,11 @@ public class NoTickSystem {
         drainQueue(this.mainAfterTicketTicks);
     }
 
-    public void tick(ServerChunkLoadingManager tacs) {
-        scheduleTick(tacs);
+    public void tick() {
+        scheduleTick();
     }
 
-    private void scheduleTick(ServerChunkLoadingManager tacs) {
+    private void scheduleTick() {
         if (!this.pendingActionsOnScheduler.isEmpty() && this.isTicking.compareAndSet(false, true)) {
             List<Runnable> tasks = new ArrayList<>(this.pendingActionsOnScheduler.size() + 3);
             {
@@ -75,8 +70,8 @@ public class NoTickSystem {
                         }
                     }
 
-                    this.playerNoTickLoader.tick(tacs);
-                    if (!this.pendingActionsOnScheduler.isEmpty() || !tasks.isEmpty()) scheduleTick(tacs); // run more tasks
+                    this.playerNoTickLoader.tick();
+                    if (!this.pendingActionsOnScheduler.isEmpty() || !tasks.isEmpty()) scheduleTick(); // run more tasks
                 } finally {
                     this.isTicking.set(false);
                 }
@@ -100,11 +95,18 @@ public class NoTickSystem {
         this.pendingPurge = true;
     }
 
-    public LongSet getNoTickOnlyChunksSnapshot() {
-        return null;
-    }
-
     public long getPendingLoadsCount() {
         return this.playerNoTickLoader.getPendingLoadsCount();
+    }
+
+    public void close() {
+        this.playerNoTickLoader.close();
+        executor.execute(() -> {
+            try {
+                this.playerNoTickLoader.tick();
+            } catch (Throwable t) {
+                t.printStackTrace();
+            }
+        });
     }
 }
