@@ -510,16 +510,8 @@ public final class ChunkDataSerializer {
 
         double[] heights = blendingData.heights().orElse(null);
         if (heights != null) {
-            for (double d : heights) {
-                if (d != Double.MAX_VALUE) {
-                    writer.putDoubles(STRING_HEIGHTS, heights);
-                    return;
-                }
-            }
+            writer.putDoubles(STRING_HEIGHTS, heights);
         }
-
-        // set to empty list
-        writer.startFixedList(STRING_HEIGHTS, 0, NbtElement.DOUBLE_TYPE);
     }
 
     /**
