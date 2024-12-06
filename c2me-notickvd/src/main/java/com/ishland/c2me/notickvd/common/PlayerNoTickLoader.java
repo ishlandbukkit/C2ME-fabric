@@ -18,10 +18,12 @@ import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.objects.ObjectBidirectionalIterator;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
+import net.minecraft.server.world.ChunkTicketType;
 import net.minecraft.server.world.ServerChunkLoadingManager;
 import net.minecraft.util.math.ChunkPos;
 import org.slf4j.Logger;
 
+import java.util.Comparator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.LongFunction;
@@ -31,6 +33,7 @@ public class PlayerNoTickLoader {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     public static final ItemTicket.TicketType TICKET_TYPE = new ItemTicket.TicketType("c2me:notickvd");
+    public static final ChunkTicketType<ChunkPos> VANILLA_TICKET_TYPE = ChunkTicketType.create("c2me_notickvd", Comparator.comparingLong(ChunkPos::toLong));
 
     private final ServerChunkLoadingManager tacs;
     private final NoTickSystem noTickSystem;
@@ -181,6 +184,7 @@ public class PlayerNoTickLoader {
                 NewChunkStatus.SERVER_ACCESSIBLE_CHUNK_SENDING,
                 StatusAdvancingScheduler.NO_OP
         );
+        this.noTickSystem.mainBeforeTicketTicks.add(() -> this.tacs.getTicketManager().addTicketWithLevel(VANILLA_TICKET_TYPE, pos, 33, pos));
         return holder.getFutureForStatus(NewChunkStatus.SERVER_ACCESSIBLE);
     }
 
@@ -192,6 +196,7 @@ public class PlayerNoTickLoader {
                 pos,
                 NewChunkStatus.SERVER_ACCESSIBLE_CHUNK_SENDING
         );
+        this.noTickSystem.mainBeforeTicketTicks.add(() -> this.tacs.getTicketManager().removeTicketWithLevel(VANILLA_TICKET_TYPE, pos, 33, pos));
     }
 
     public long getPendingLoadsCount() {
