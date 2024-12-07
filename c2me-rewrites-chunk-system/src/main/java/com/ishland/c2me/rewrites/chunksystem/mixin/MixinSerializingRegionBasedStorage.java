@@ -31,7 +31,7 @@ public abstract class MixinSerializingRegionBasedStorage<R> implements IPOIUnloa
         }
 
         this.saveChunk(pos);
-        for (int i = this.world.getBottomSectionCoord(); i < this.world.getTopSectionCoord(); i++) {
+        for (int i = this.world.getBottomSectionCoord(); i <= this.world.getTopSectionCoord(); i++) {
             this.loadedElements.remove(ChunkSectionPos.asLong(pos.x, i, pos.z));
         }
     }
