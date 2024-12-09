@@ -46,6 +46,30 @@ public class ServerAccessible extends NewChunkStatus {
         Preconditions.checkState(chunk instanceof ProtoChunk, "Chunk must be a proto chunk");
         ProtoChunk protoChunk = (ProtoChunk) chunk;
 
+        if (Config.suppressGhostMushrooms) {
+            ServerWorld serverWorld = ((IThreadedAnvilChunkStorage) context.tacs()).getWorld();
+            ChunkRegion chunkRegion = new ChunkRegion(serverWorld, context.chunks(), ChunkGenerationSteps.GENERATION.get(ChunkStatus.FULL), chunk);
+
+            ChunkPos chunkPos = context.holder().getKey();
+
+            ShortList[] postProcessingLists = protoChunk.getPostProcessingLists();
+            for (int i = 0; i < postProcessingLists.length; i++) {
+                if (postProcessingLists[i] != null) {
+                    for (ShortListIterator iterator = postProcessingLists[i].iterator(); iterator.hasNext(); ) {
+                        short short_ = iterator.nextShort();
+                        BlockPos blockPos = ProtoChunk.joinBlockPos(short_, protoChunk.sectionIndexToCoord(i), chunkPos);
+                        BlockState blockState = protoChunk.getBlockState(blockPos);
+
+                        if (blockState.getBlock() == Blocks.BROWN_MUSHROOM || blockState.getBlock() == Blocks.RED_MUSHROOM) {
+                            if (!blockState.canPlaceAt(chunkRegion, blockPos)) {
+                                protoChunk.setBlockState(blockPos, Blocks.AIR.getDefaultState(), false); // TODO depends on the fact that the chunk system always locks the current chunk
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         return CompletableFuture.runAsync(() -> {
             try (var ignored = ThreadInstrumentation.getCurrent().begin(new ChunkTaskWork(context, this, true))) {
                 ServerWorld serverWorld = ((IThreadedAnvilChunkStorage) context.tacs()).getWorld();

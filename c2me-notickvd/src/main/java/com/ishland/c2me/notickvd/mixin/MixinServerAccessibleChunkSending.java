@@ -1,13 +1,11 @@
 package com.ishland.c2me.notickvd.mixin;
 
-import com.ishland.c2me.base.common.threadstate.ThreadInstrumentation;
 import com.ishland.c2me.base.mixin.access.IThreadedAnvilChunkStorage;
 import com.ishland.c2me.rewrites.chunksystem.common.ChunkLoadingContext;
 import com.ishland.c2me.rewrites.chunksystem.common.ChunkState;
 import com.ishland.c2me.rewrites.chunksystem.common.NewChunkHolderVanillaInterface;
 import com.ishland.c2me.rewrites.chunksystem.common.NewChunkStatus;
 import com.ishland.c2me.rewrites.chunksystem.common.statuses.ServerAccessibleChunkSending;
-import com.ishland.c2me.rewrites.chunksystem.common.threadstate.ChunkTaskWork;
 import com.ishland.flowsched.scheduler.Cancellable;
 import com.ishland.flowsched.scheduler.ItemHolder;
 import com.ishland.flowsched.scheduler.KeyStatusPair;
@@ -58,13 +56,7 @@ public class MixinServerAccessibleChunkSending {
      */
     @Overwrite(remap = false)
     public CompletionStage<Void> upgradeToThis(ChunkLoadingContext context, Cancellable cancellable) {
-        return CompletableFuture.runAsync(() -> {
-            try (var ignored = ThreadInstrumentation.getCurrent().begin(new ChunkTaskWork(context,  (ServerAccessibleChunkSending) (Object) this, true))) {
-                final WorldChunk chunk = (WorldChunk) context.holder().getItem().get().chunk();
-                chunk.runPostProcessing(((IThreadedAnvilChunkStorage) context.tacs()).getWorld());
-                sendChunkToPlayer(context.tacs(), context.holder());
-            }
-        }, ((IThreadedAnvilChunkStorage) context.tacs()).getMainThreadExecutor());
+        return CompletableFuture.runAsync(() -> sendChunkToPlayer(context.tacs(), context.holder()), ((IThreadedAnvilChunkStorage) context.tacs()).getMainThreadExecutor());
     }
 
     @Unique
