@@ -39,7 +39,7 @@ public class MixinServerAccessibleChunkSending {
 
     @Inject(method = "<clinit>", at = @At("RETURN"))
     private static void onCLInit(CallbackInfo ci) {
-        NewChunkStatus depStatus = NewChunkStatus.fromVanillaStatus(ChunkStatus.FULL);
+        NewChunkStatus depStatus = NewChunkStatus.fromVanillaStatus(ChunkStatus.LIGHT);
         deps = new KeyStatusPair[]{
                 new KeyStatusPair<>(new ChunkPos(-1, -1), depStatus),
                 new KeyStatusPair<>(new ChunkPos(-1, 0), depStatus),
