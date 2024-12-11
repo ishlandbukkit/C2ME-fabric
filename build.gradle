@@ -249,11 +249,9 @@ dependencies {
 }
 
 String getVersionSuffix() {
-    def stdout = new ByteArrayOutputStream()
-    exec {
+    def stdout = providers.exec {
         commandLine 'git', 'describe', '--tags', '--dirty', '--broken'
-        standardOutput = stdout
-    }
+    }.standardOutput.asText.get()
     stdout = stdout.toString().strip()
     def suffix = ""
     if (stdout.endsWith("-dirty")) {
