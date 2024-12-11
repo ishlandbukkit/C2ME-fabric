@@ -4,6 +4,7 @@ import com.ishland.c2me.opts.dfc.common.ast.AstNode;
 import com.ishland.c2me.opts.dfc.common.ast.AstTransformer;
 import com.ishland.c2me.opts.dfc.common.ast.EvalType;
 import com.ishland.c2me.opts.dfc.common.ast.McToAst;
+import com.ishland.c2me.opts.dfc.common.ast.misc.ConstantNode;
 import com.ishland.c2me.opts.dfc.common.gen.BytecodeGen;
 import com.ishland.c2me.opts.dfc.common.vif.NoisePosVanillaInterface;
 import com.ishland.flowsched.util.Assertions;
@@ -29,6 +30,7 @@ import java.util.Map;
 public class SplineAstNode implements AstNode {
 
     public static final String SPLINE_METHOD_DESC = Type.getMethodDescriptor(Type.getType(float.class), Type.getType(int.class), Type.getType(int.class), Type.getType(int.class), Type.getType(EvalType.class));
+    public static final String SPLINE_METHOD_DESC_CACHE1 = Type.getMethodDescriptor(Type.getType(float.class), Type.getType(int.class), Type.getType(int.class), Type.getType(int.class), Type.getType(EvalType.class), Type.getType(float.class));
     private final Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> spline;
     private final Reference2ReferenceMap<DensityFunctionTypes.Spline.DensityFunctionWrapper, AstNode> children = new Reference2ReferenceOpenHashMap<>();
 
@@ -80,15 +82,15 @@ public class SplineAstNode implements AstNode {
 
     @Override
     public void doBytecodeGenSingle(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
-        BytecodeGen.Context.ValuesMethodDefF splineMethod = doBytecodeGenSpline(context, this.spline);
-        callSplineSingle(context, m, splineMethod);
+        BytecodeGen.Context.ValuesMethodDefF splineMethod = doBytecodeGenSpline(context, this.spline, false);
+        callSplineSingle(context, m, splineMethod, -1);
         m.cast(Type.FLOAT_TYPE, Type.DOUBLE_TYPE);
         m.areturn(Type.DOUBLE_TYPE);
     }
 
-    private BytecodeGen.Context.ValuesMethodDefF doBytecodeGenSpline(BytecodeGen.Context context, Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> spline) {
+    private BytecodeGen.Context.ValuesMethodDefF doBytecodeGenSpline(BytecodeGen.Context context, Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> spline, boolean cache1) {
         {
-            String cachedSplineMethod = context.getCachedSplineMethod(spline);
+            String cachedSplineMethod = context.getCachedSplineMethod(spline, cache1);
             if (cachedSplineMethod != null) {
                 return new BytecodeGen.Context.ValuesMethodDefF(cachedSplineMethod);
             }
@@ -102,11 +104,11 @@ public class SplineAstNode implements AstNode {
                         context.className,
                         Opcodes.ACC_PRIVATE | Opcodes.ACC_FINAL,
                         name,
-                        SPLINE_METHOD_DESC,
+                        cache1 ? SPLINE_METHOD_DESC_CACHE1 : SPLINE_METHOD_DESC,
                         context.classWriter.visitMethod(
                                 Opcodes.ACC_PRIVATE | Opcodes.ACC_FINAL,
                                 name,
-                                SPLINE_METHOD_DESC,
+                                cache1 ? SPLINE_METHOD_DESC_CACHE1 : SPLINE_METHOD_DESC,
                                 null,
                                 null
                         )
@@ -117,30 +119,33 @@ public class SplineAstNode implements AstNode {
         Label end = new Label();
         m.visitLabel(start);
         BytecodeGen.Context.LocalVarConsumer localVarConsumer = (localName, localDesc) -> {
-            int ordinal = extraLocals.size() + 5;
+            int ordinal = extraLocals.size() + (cache1 ? 6 : 5);
             extraLocals.add(IntObjectPair.of(ordinal, Pair.of(localName, localDesc)));
             return ordinal;
         };
 
         if (spline instanceof Spline.Implementation<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> impl) {
-            BytecodeGen.Context.ValuesMethodDefF[] valuesMethods = impl.values().stream()
-                    .map(spline1 -> doBytecodeGenSpline(context, spline1))
-                    .toArray(BytecodeGen.Context.ValuesMethodDefF[]::new);
+//            BytecodeGen.Context.ValuesMethodDefF[] valuesMethods = impl.values().stream()
+//                    .map(spline1 -> doBytecodeGenSpline(context, spline1))
+//                    .toArray(BytecodeGen.Context.ValuesMethodDefF[]::new);
 
             String locations = context.newField(float[].class, impl.locations());
             String derivatives = context.newField(float[].class, impl.derivatives());
 
-            int point = localVarConsumer.createLocalVariable("point", Type.FLOAT_TYPE.getDescriptor());
+            int point = cache1 ? 5 : localVarConsumer.createLocalVariable("point", Type.FLOAT_TYPE.getDescriptor());
             int rangeForLocation = localVarConsumer.createLocalVariable("rangeForLocation", Type.INT_TYPE.getDescriptor());
 
             int lastConst = impl.locations().length - 1;
 
-            BytecodeGen.Context.ValuesMethodDefD locationFunction = context.newSingleMethod(this.children.get(impl.locationFunction()));
-            context.callDelegateSingle(m, locationFunction);
-            m.cast(Type.DOUBLE_TYPE, Type.FLOAT_TYPE);
-            m.store(point, Type.FLOAT_TYPE);
+            if (!cache1) {
+                BytecodeGen.Context.ValuesMethodDefD locationFunction = context.newSingleMethod(this.children.get(impl.locationFunction()));
+                context.callDelegateSingle(m, locationFunction);
+                m.cast(Type.DOUBLE_TYPE, Type.FLOAT_TYPE);
+                m.store(point, Type.FLOAT_TYPE);
+            }
 
-            if (valuesMethods.length == 1) {
+            int valuesMethodsLength = impl.values().size();
+            if (valuesMethodsLength == 1) {
                 m.load(point, Type.FLOAT_TYPE);
                 m.load(0, InstructionAdapter.OBJECT_TYPE);
                 m.getfield(
@@ -148,7 +153,7 @@ public class SplineAstNode implements AstNode {
                         locations,
                         Type.getDescriptor(float[].class)
                 );
-                callSplineSingle(context, m, valuesMethods[0]);
+                callSplineSingle(context, m, doBytecodeGenSpline(context, impl.values().getFirst(), false), -1);
                 m.load(0, InstructionAdapter.OBJECT_TYPE);
                 m.getfield(
                         context.className,
@@ -192,7 +197,7 @@ public class SplineAstNode implements AstNode {
                         locations,
                         Type.getDescriptor(float[].class)
                 );
-                callSplineSingle(context, m, valuesMethods[0]);
+                callSplineSingle(context, m, doBytecodeGenSpline(context, impl.values().getFirst(), false), -1);
                 m.load(0, InstructionAdapter.OBJECT_TYPE);
                 m.getfield(
                         context.className,
@@ -220,7 +225,7 @@ public class SplineAstNode implements AstNode {
                         locations,
                         Type.getDescriptor(float[].class)
                 );
-                callSplineSingle(context, m, valuesMethods[lastConst]);
+                callSplineSingle(context, m, doBytecodeGenSpline(context, impl.values().get(lastConst), false), -1);
                 m.load(0, InstructionAdapter.OBJECT_TYPE);
                 m.getfield(
                         context.className,
@@ -247,6 +252,8 @@ public class SplineAstNode implements AstNode {
                 int onDist = localVarConsumer.createLocalVariable("onDist", Type.FLOAT_TYPE.getDescriptor());
                 int p = localVarConsumer.createLocalVariable("p", Type.FLOAT_TYPE.getDescriptor());
                 int q = localVarConsumer.createLocalVariable("q", Type.FLOAT_TYPE.getDescriptor());
+
+                int cache1Local = localVarConsumer.createLocalVariable("cache1Local", Type.FLOAT_TYPE.getDescriptor());
 
                 m.load(0, InstructionAdapter.OBJECT_TYPE);
                 m.getfield(
@@ -282,9 +289,9 @@ public class SplineAstNode implements AstNode {
                 m.div(Type.FLOAT_TYPE);
                 m.store(k, Type.FLOAT_TYPE);
 
-                Label[] jumpLabels = new Label[valuesMethods.length - 1];
-                boolean[] jumpGenerated = new boolean[valuesMethods.length - 1];
-                for (int i = 0; i < valuesMethods.length - 1; i++) {
+                Label[] jumpLabels = new Label[valuesMethodsLength - 1];
+                boolean[] jumpGenerated = new boolean[valuesMethodsLength - 1];
+                for (int i = 0; i < valuesMethodsLength - 1; i++) {
                     jumpLabels[i] = new Label();
                 }
                 Label defaultLabel = new Label();
@@ -293,29 +300,39 @@ public class SplineAstNode implements AstNode {
                 m.load(rangeForLocation, Type.INT_TYPE);
                 m.tableswitch(
                         0,
-                        valuesMethods.length - 2,
+                        valuesMethodsLength - 2,
                         defaultLabel,
                         jumpLabels
                 );
 
-                for (int i = 0; i < valuesMethods.length - 1; i++) {
+                for (int i = 0; i < valuesMethodsLength - 1; i++) {
                     if (jumpGenerated[i]) continue;
                     m.visitLabel(jumpLabels[i]);
                     jumpGenerated[i] = true;
-                    for (int j = i + 1; j < valuesMethods.length - 1; j++) { // deduplication
-                        if (valuesMethods[i].equals(valuesMethods[j]) && valuesMethods[i + 1].equals(valuesMethods[j + 1])) {
+                    for (int j = i + 1; j < valuesMethodsLength - 1; j++) { // deduplication
+                        if (impl.values().get(i).equals(impl.values().get(j)) && impl.values().get(i + 1).equals(impl.values().get(j + 1))) {
                             m.visitLabel(jumpLabels[j]);
                             jumpGenerated[j] = true;
                         }
                     }
-                    callSplineSingle(context, m, valuesMethods[i]);
-                    if (valuesMethods[i].equals(valuesMethods[i + 1])) { // splines are pure
+
+                    boolean optimizePure = impl.values().get(i).equals(impl.values().get(i + 1));
+                    AstNode sameLocationFunction = needOptimizeSameLocationFunction(impl.values().get(i), impl.values().get(i + 1));
+                    boolean doCache1 = !optimizePure && sameLocationFunction != null;
+                    if (doCache1) {
+                        BytecodeGen.Context.ValuesMethodDefD locationFunction = context.newSingleMethod(sameLocationFunction);
+                        context.callDelegateSingle(m, locationFunction);
+                        m.cast(Type.DOUBLE_TYPE, Type.FLOAT_TYPE);
+                        m.store(cache1Local, Type.FLOAT_TYPE);
+                    }
+                    callSplineSingle(context, m, doBytecodeGenSpline(context, impl.values().get(i), doCache1), doCache1 ? cache1Local : -1);
+                    if (optimizePure) { // splines are pure
                         m.dup();
                         m.store(n, Type.FLOAT_TYPE);
                         m.store(o, Type.FLOAT_TYPE);
                     } else {
                         m.store(n, Type.FLOAT_TYPE);
-                        callSplineSingle(context, m, valuesMethods[i + 1]);
+                        callSplineSingle(context, m, doBytecodeGenSpline(context, impl.values().get(i + 1), doCache1), doCache1 ? cache1Local : -1);
                         m.store(o, Type.FLOAT_TYPE);
                     }
                     m.goTo(label3);
@@ -412,26 +429,45 @@ public class SplineAstNode implements AstNode {
         m.visitLocalVariable("y", Type.INT_TYPE.getDescriptor(), null, start, end, 2);
         m.visitLocalVariable("z", Type.INT_TYPE.getDescriptor(), null, start, end, 3);
         m.visitLocalVariable("evalType", Type.getType(EvalType.class).getDescriptor(), null, start, end, 4);
+        if (cache1) {
+            m.visitLocalVariable("pointCached", Type.FLOAT_TYPE.getDescriptor(), null, start, end, 5);
+        }
         for (IntObjectPair<Pair<String, String>> local : extraLocals) {
             m.visitLocalVariable(local.right().left(), local.right().right(), null, start, end, local.leftInt());
         }
         m.visitMaxs(0, 0);
 
-        context.cacheSplineMethod(spline, name);
+        context.cacheSplineMethod(spline, name, cache1);
 
         return new BytecodeGen.Context.ValuesMethodDefF(name);
     }
 
-    private static void callSplineSingle(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.ValuesMethodDefF target) {
+    private AstNode needOptimizeSameLocationFunction(Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> a, Spline<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> b) {
+        if (a instanceof Spline.Implementation<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> a1 &&
+                b instanceof Spline.Implementation<DensityFunctionTypes.Spline.SplinePos, DensityFunctionTypes.Spline.DensityFunctionWrapper> b1) {
+            AstNode a1Ast = this.children.get(a1.locationFunction());
+            AstNode b1Ast = this.children.get(b1.locationFunction());
+            if (a1Ast.equals(b1Ast) && !(a1Ast instanceof ConstantNode)) {
+                return a1Ast;
+            }
+        }
+        return null;
+    }
+
+    private static void callSplineSingle(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.ValuesMethodDefF target, int cache1Local) {
         if (target.isConst()) {
             m.fconst(target.constValue());
         } else {
+            boolean doCache1 = cache1Local != -1;
             m.load(0, InstructionAdapter.OBJECT_TYPE);
             m.load(1, Type.INT_TYPE);
             m.load(2, Type.INT_TYPE);
             m.load(3, Type.INT_TYPE);
             m.load(4, InstructionAdapter.OBJECT_TYPE);
-            m.invokevirtual(context.className, target.generatedMethod(), SPLINE_METHOD_DESC, false);
+            if (doCache1) {
+                m.load(cache1Local, Type.FLOAT_TYPE);
+            }
+            m.invokevirtual(context.className, target.generatedMethod(), doCache1 ? SPLINE_METHOD_DESC_CACHE1 : SPLINE_METHOD_DESC, false);
         }
     }
 
