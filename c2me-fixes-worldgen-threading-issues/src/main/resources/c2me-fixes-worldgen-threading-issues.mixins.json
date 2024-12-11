@@ -23,6 +23,7 @@
     "threading.MixinShiftableStructurePiece",
     "threading.MixinStrongholdGenerator",
     "threading.MixinStrongholdGeneratorChestCorridor",
+    "threading.MixinStrongholdGeneratorPieceData",
     "threading.MixinStrongholdGeneratorPortalRoom",
     "threading.MixinStrongholdGeneratorSpiralStaircase",
     "threading.MixinStrongholdGeneratorStart",
