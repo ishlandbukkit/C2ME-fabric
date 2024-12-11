@@ -42,6 +42,7 @@
     "access.IStructureWeightSampler",
     "access.ISyncedClientOptions",
     "access.IThreadedAnvilChunkStorage",
+    "access.IThreadedAnvilChunkStorageTicketManager",
     "access.IUpgradeData",
     "access.IVersionedChunkStorage",
     "access.IWeightedList",

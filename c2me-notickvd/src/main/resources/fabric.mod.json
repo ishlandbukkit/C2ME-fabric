@@ -11,7 +11,8 @@
   "depends": {
     "minecraft": "*",
     "fabricloader": "*",
-    "c2me-base": "*"
+    "c2me-base": "*",
+    "c2me-rewrites-chunk-system": "*"
   },
   "entrypoints": {
     "main": [
