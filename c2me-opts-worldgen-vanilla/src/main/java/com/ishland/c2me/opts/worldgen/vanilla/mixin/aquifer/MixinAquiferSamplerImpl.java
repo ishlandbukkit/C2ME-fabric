@@ -241,33 +241,53 @@ public abstract class MixinAquiferSamplerImpl {
 
         for (int offY = -1; offY <= 1; ++offY) {
             for (int offZ = 0; offZ <= 1; ++offZ) {
-                for (int offX = 0; offX <= 1; ++offX) {
-                    int posIdx = this.index(gx + offX, gy + offY, gz + offZ);
+                // unrolled loop
+                int posIdx0 = this.index(gx, gy + offY, gz + offZ);
 
-                    long position = this.blockPositions[posIdx];
+                long position0 = this.blockPositions[posIdx0];
 
-                    int dx = BlockPos.unpackLongX(position) - x;
-                    int dy = BlockPos.unpackLongY(position) - y;
-                    int dz = BlockPos.unpackLongZ(position) - z;
-                    int dist = dx * dx + dy * dy + dz * dz;
+                int dx0 = BlockPos.unpackLongX(position0) - x;
+                int dz0 = BlockPos.unpackLongZ(position0) - z;
+                int dy0 = BlockPos.unpackLongY(position0) - y;
+                int dist_0 = dx0 * dx0 + dy0 * dy0 + dz0 * dz0;
 
-                    // unexplainable branch prediction magic
-                    if (dist3 >= dist) {
-                        pos3 = position;
-                        dist3 = dist;
-                    }
-                    if (dist2 >= dist) {
-                        pos3 = pos2;
-                        dist3 = dist2;
-                        pos2 = position;
-                        dist2 = dist;
-                    }
-                    if (dist1 >= dist) {
-                        pos2 = pos1;
-                        dist2 = dist1;
-                        pos1 = position;
-                        dist1 = dist;
-                    }
+                int posIdx1 = posIdx0 + 1;
+                long position1 = this.blockPositions[posIdx1];
+                int dx1 = BlockPos.unpackLongX(position1) - x;
+                int dy1 = BlockPos.unpackLongY(position1) - y;
+                int dz1 = BlockPos.unpackLongZ(position1) - z;
+                int dist_1 = dx1 * dx1 + dy1 * dy1 + dz1 * dz1;
+                if (dist3 >= dist_0) {
+                    pos3 = position0;
+                    dist3 = dist_0;
+                }
+                if (dist2 >= dist_0) {
+                    pos3 = pos2;
+                    dist3 = dist2;
+                    pos2 = position0;
+                    dist2 = dist_0;
+                }
+                if (dist1 >= dist_0) {
+                    pos2 = pos1;
+                    dist2 = dist1;
+                    pos1 = position0;
+                    dist1 = dist_0;
+                }
+                if (dist3 >= dist_1) {
+                    pos3 = position1;
+                    dist3 = dist_1;
+                }
+                if (dist2 >= dist_1) {
+                    pos3 = pos2;
+                    dist3 = dist2;
+                    pos2 = position1;
+                    dist2 = dist_1;
+                }
+                if (dist1 >= dist_1) {
+                    pos2 = pos1;
+                    dist2 = dist1;
+                    pos1 = position1;
+                    dist1 = dist_1;
                 }
             }
         }
