@@ -40,14 +40,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
-import java.util.stream.Collectors;
 
 public class BytecodeGen {
 
@@ -113,14 +111,14 @@ public class BytecodeGen {
         genContext.newSingleMethod0((adapter, localVarConsumer) -> rootNode.doBytecodeGenSingle(genContext, adapter, localVarConsumer), "evalSingle", true);
         genContext.newMultiMethod0((adapter, localVarConsumer) -> rootNode.doBytecodeGenMulti(genContext, adapter, localVarConsumer), "evalMulti", true);
 
-        List<Object> args = genContext.args.entrySet().stream()
+        Object[] args = genContext.args.entrySet().stream()
                 .sorted(Comparator.comparingInt(o -> o.getValue().ordinal()))
                 .map(Map.Entry::getKey)
-                .collect(Collectors.toCollection(ArrayList::new));
+                .toArray(Object[]::new);
 
         if (cached != null) {
             try {
-                return (CompiledEntry) cached.getConstructor(List.class).newInstance(args);
+                return (CompiledEntry) cached.getConstructor(Object[].class).newInstance(new Object[]{args});
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                 throw new RuntimeException(e);
             }
@@ -131,20 +129,20 @@ public class BytecodeGen {
         genNewInstance(genContext);
 //        genFields(genContext);
 
-        ListIterator<Object> iterator = args.listIterator();
-        while (iterator.hasNext()) {
-            Object next = iterator.next();
-//            if (next instanceof DensityFunctionTypes.Wrapping wrapping && wrapping.type() == DensityFunctionTypes.Wrapping.Type.FLAT_CACHE) {
-//                iterator.set(new DensityFunctionTypes.Wrapping(wrapping.type(), compile(wrapping.wrapped())));
-//            }
-        }
+//        ListIterator<Object> iterator = args.listIterator();
+//        while (iterator.hasNext()) {
+//            Object next = iterator.next();
+////            if (next instanceof DensityFunctionTypes.Wrapping wrapping && wrapping.type() == DensityFunctionTypes.Wrapping.Type.FLAT_CACHE) {
+////                iterator.set(new DensityFunctionTypes.Wrapping(wrapping.type(), compile(wrapping.wrapped())));
+////            }
+//        }
 
         byte[] bytes = writer.toByteArray();
         dumpClass(genContext.className, bytes);
         Class<?> defined = defineClass(genContext.className, bytes);
         compilationCache.put(node, defined);
         try {
-            return (CompiledEntry) defined.getConstructor(List.class).newInstance(args);
+            return (CompiledEntry) defined.getConstructor(Object[].class).newInstance(new Object[]{args});
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
@@ -156,11 +154,11 @@ public class BytecodeGen {
                         context.className,
                         Opcodes.ACC_PUBLIC,
                         "<init>",
-                        Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(List.class)),
+                        Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(Object[].class)),
                         context.classWriter.visitMethod(
                                 Opcodes.ACC_PUBLIC,
                                 "<init>",
-                                Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(List.class)),
+                                Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(Object[].class)),
                                 null,
                                 null
                         )
@@ -182,7 +180,7 @@ public class BytecodeGen {
             m.load(0, InstructionAdapter.OBJECT_TYPE);
             m.load(1, InstructionAdapter.OBJECT_TYPE);
             m.iconst(ordinal);
-            m.invokeinterface(Type.getInternalName(List.class), "get", Type.getMethodDescriptor(InstructionAdapter.OBJECT_TYPE, Type.INT_TYPE));
+            m.aload(InstructionAdapter.OBJECT_TYPE);
             m.checkcast(Type.getType(type));
             m.putfield(context.className, name, Type.getDescriptor(type));
         }
@@ -195,7 +193,7 @@ public class BytecodeGen {
         m.areturn(Type.VOID_TYPE);
         m.visitLabel(end);
         m.visitLocalVariable("this", context.classDesc, null, start, end, 0);
-        m.visitLocalVariable("list", Type.getDescriptor(List.class), null, start, end, 1);
+        m.visitLocalVariable("args", Type.getDescriptor(Object[].class), null, start, end, 1);
         m.visitMaxs(0, 0);
     }
 
@@ -205,11 +203,11 @@ public class BytecodeGen {
                         context.className,
                         Opcodes.ACC_PUBLIC | Opcodes.ACC_FINAL,
                         "getArgs",
-                        Type.getMethodDescriptor(Type.getType(List.class)),
+                        Type.getMethodDescriptor(Type.getType(Object[].class)),
                         context.classWriter.visitMethod(
                                 Opcodes.ACC_PUBLIC | Opcodes.ACC_FINAL,
                                 "getArgs",
-                                Type.getMethodDescriptor(Type.getType(List.class)),
+                                Type.getMethodDescriptor(Type.getType(Object[].class)),
                                 null,
                                 null
                         )
@@ -220,28 +218,25 @@ public class BytecodeGen {
         Label end = new Label();
         m.visitLabel(start);
 
-        m.anew(Type.getType(ArrayList.class));
-        m.dup();
         m.iconst(context.args.size());
-        m.invokespecial(Type.getInternalName(ArrayList.class), "<init>", Type.getMethodDescriptor(Type.VOID_TYPE, Type.INT_TYPE), false);
-        m.store(1, InstructionAdapter.OBJECT_TYPE);
+        m.newarray(InstructionAdapter.OBJECT_TYPE);
 
+        int index = 0;
         for (Map.Entry<Object, Context.FieldRecord> entry : context.args.entrySet().stream().sorted(Comparator.comparingInt(o -> o.getValue().ordinal())).toList()) {
             String name = entry.getValue().name();
             Class<?> type = entry.getValue().type();
 
-            m.load(1, InstructionAdapter.OBJECT_TYPE);
+            m.dup();
+            m.iconst(index ++);
             m.load(0, InstructionAdapter.OBJECT_TYPE);
             m.getfield(context.className, name, Type.getDescriptor(type));
-            m.invokeinterface(Type.getInternalName(List.class), "add", Type.getMethodDescriptor(Type.BOOLEAN_TYPE, InstructionAdapter.OBJECT_TYPE));
-            m.pop();
+            m.astore(InstructionAdapter.OBJECT_TYPE);
         }
 
-        m.load(1, InstructionAdapter.OBJECT_TYPE);
         m.areturn(InstructionAdapter.OBJECT_TYPE);
         m.visitLabel(end);
         m.visitLocalVariable("this", context.classDesc, null, start, end, 0);
-        m.visitLocalVariable("list", Type.getDescriptor(List.class), null, start, end, 1);
+        m.visitLocalVariable("args", Type.getDescriptor(Object[].class), null, start, end, 1);
         m.visitMaxs(0, 0);
     }
 
@@ -251,11 +246,11 @@ public class BytecodeGen {
                         context.className,
                         Opcodes.ACC_PUBLIC | Opcodes.ACC_FINAL,
                         "newInstance",
-                        Type.getMethodDescriptor(Type.getType(CompiledEntry.class), Type.getType(List.class)),
+                        Type.getMethodDescriptor(Type.getType(CompiledEntry.class), Type.getType(Object[].class)),
                         context.classWriter.visitMethod(
                                 Opcodes.ACC_PUBLIC | Opcodes.ACC_FINAL,
                                 "newInstance",
-                                Type.getMethodDescriptor(Type.getType(CompiledEntry.class), Type.getType(List.class)),
+                                Type.getMethodDescriptor(Type.getType(CompiledEntry.class), Type.getType(Object[].class)),
                                 null,
                                 null
                         )
@@ -268,12 +263,12 @@ public class BytecodeGen {
         m.anew(Type.getType(context.classDesc));
         m.dup();
         m.load(1, InstructionAdapter.OBJECT_TYPE);
-        m.invokespecial(context.className, "<init>", Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(List.class)), false);
+        m.invokespecial(context.className, "<init>", Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(Object[].class)), false);
         m.areturn(InstructionAdapter.OBJECT_TYPE);
 
         m.visitLabel(end);
         m.visitLocalVariable("this", context.classDesc, null, start, end, 0);
-        m.visitLocalVariable("list", Type.getDescriptor(List.class), null, start, end, 1);
+        m.visitLocalVariable("args", Type.getDescriptor(Object[].class), null, start, end, 1);
         m.visitMaxs(0, 0);
     }
 

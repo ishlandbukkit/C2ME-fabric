@@ -41,14 +41,14 @@ public class CompiledDensityFunction extends SubCompiledDensityFunction {
             return fallback1.apply(visitor);
         }
         boolean modified = false;
-        List<Object> args = this.compiledEntry.getArgs();
-        for (ListIterator<Object> iterator = args.listIterator(); iterator.hasNext(); ) {
-            Object next = iterator.next();
+        Object[] args = this.compiledEntry.getArgs();
+        for (int i = 0; i < args.length; i ++) {
+            Object next = args[i];
             if (next instanceof DensityFunction df) {
                 if (!(df instanceof IFastCacheLike)) {
                     DensityFunction applied = df.apply(visitor);
                     if (df != applied) {
-                        iterator.set(applied);
+                        args[i] = applied;
                         modified = true;
                     }
                 }
@@ -56,21 +56,21 @@ public class CompiledDensityFunction extends SubCompiledDensityFunction {
             if (next instanceof Noise noise) {
                 Noise applied = visitor.apply(noise);
                 if (noise != applied) {
-                    iterator.set(applied);
+                    args[i] = applied;
                     modified = true;
                 }
             }
         }
 
-        for (ListIterator<Object> iterator = args.listIterator(); iterator.hasNext(); ) {
-            Object next = iterator.next();
+        for (int i = 0; i < args.length; i ++) {
+            Object next = args[i];
             if (next instanceof IFastCacheLike cacheLike) {
                 DensityFunction applied = visitor.apply(cacheLike);
                 if (applied == cacheLike.c2me$getDelegate()) {
-                    iterator.set(null); // cache removed
+                    args[i] = null; // cache removed
                     modified = true;
                 } else if (applied instanceof IFastCacheLike newCacheLike) {
-                    iterator.set(newCacheLike);
+                    args[i] = newCacheLike;
                     modified = true;
                 } else {
                     throw new UnsupportedOperationException("Unsupported transformation on Wrapping node");
