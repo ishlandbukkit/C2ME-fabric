@@ -1,5 +1,6 @@
 package com.ishland.c2me.notickvd.mixin;
 
+import com.ishland.c2me.base.common.threadstate.ThreadInstrumentation;
 import com.ishland.c2me.base.mixin.access.IThreadedAnvilChunkStorage;
 import com.ishland.c2me.rewrites.chunksystem.common.ChunkLoadingContext;
 import com.ishland.c2me.rewrites.chunksystem.common.ChunkState;
@@ -7,6 +8,7 @@ import com.ishland.c2me.rewrites.chunksystem.common.Config;
 import com.ishland.c2me.rewrites.chunksystem.common.NewChunkHolderVanillaInterface;
 import com.ishland.c2me.rewrites.chunksystem.common.NewChunkStatus;
 import com.ishland.c2me.rewrites.chunksystem.common.statuses.ServerAccessibleChunkSending;
+import com.ishland.c2me.rewrites.chunksystem.common.threadstate.ChunkTaskWork;
 import com.ishland.flowsched.scheduler.Cancellable;
 import com.ishland.flowsched.scheduler.ItemHolder;
 import com.ishland.flowsched.scheduler.KeyStatusPair;
@@ -45,7 +47,7 @@ public class MixinServerAccessibleChunkSending {
 
     @Inject(method = "<clinit>", at = @At("RETURN"))
     private static void onCLInit(CallbackInfo ci) {
-        NewChunkStatus depStatus = NewChunkStatus.fromVanillaStatus(ChunkStatus.LIGHT);
+        NewChunkStatus depStatus = NewChunkStatus.fromVanillaStatus(ChunkStatus.FULL);
         deps = new KeyStatusPair[]{
                 new KeyStatusPair<>(new ChunkPos(-1, -1), depStatus),
                 new KeyStatusPair<>(new ChunkPos(-1, 0), depStatus),
@@ -65,31 +67,33 @@ public class MixinServerAccessibleChunkSending {
     @Overwrite(remap = false)
     public CompletionStage<Void> upgradeToThis(ChunkLoadingContext context, Cancellable cancellable) {
         return CompletableFuture.runAsync(() -> {
-            if (Config.suppressGhostMushrooms) {
-                final WorldChunk chunk = (WorldChunk) context.holder().getItem().get().chunk();
-                ServerWorld world = ((IThreadedAnvilChunkStorage) context.tacs()).getWorld();
+            try (var ignored = ThreadInstrumentation.getCurrent().begin(new ChunkTaskWork(context, (ServerAccessibleChunkSending) (Object) this, true))) {
+                if (Config.suppressGhostMushrooms) {
+                    final WorldChunk chunk = (WorldChunk) context.holder().getItem().get().chunk();
+                    ServerWorld world = ((IThreadedAnvilChunkStorage) context.tacs()).getWorld();
 
-                ChunkPos chunkPos = context.holder().getKey();
+                    ChunkPos chunkPos = context.holder().getKey();
 
-                ShortList[] postProcessingLists = chunk.getPostProcessingLists();
-                for (int i = 0; i < postProcessingLists.length; i++) {
-                    if (postProcessingLists[i] != null) {
-                        for (ShortListIterator iterator = postProcessingLists[i].iterator(); iterator.hasNext(); ) {
-                            short short_ = iterator.nextShort();
-                            BlockPos blockPos = ProtoChunk.joinBlockPos(short_, chunk.sectionIndexToCoord(i), chunkPos);
-                            BlockState blockState = chunk.getBlockState(blockPos);
+                    ShortList[] postProcessingLists = chunk.getPostProcessingLists();
+                    for (int i = 0; i < postProcessingLists.length; i++) {
+                        if (postProcessingLists[i] != null) {
+                            for (ShortListIterator iterator = postProcessingLists[i].iterator(); iterator.hasNext(); ) {
+                                short short_ = iterator.nextShort();
+                                BlockPos blockPos = ProtoChunk.joinBlockPos(short_, chunk.sectionIndexToCoord(i), chunkPos);
+                                BlockState blockState = chunk.getBlockState(blockPos);
 
-                            if (!(blockState.getBlock() instanceof FluidBlock)) {
-                                BlockState blockState2 = Block.postProcessState(blockState, world, blockPos);
-                                if (blockState2 != blockState) {
-                                    world.setBlockState(blockPos, blockState2, Block.NO_REDRAW | Block.FORCE_STATE);
+                                if (!(blockState.getBlock() instanceof FluidBlock)) {
+                                    BlockState blockState2 = Block.postProcessState(blockState, world, blockPos);
+                                    if (blockState2 != blockState) {
+                                        world.setBlockState(blockPos, blockState2, Block.NO_REDRAW | Block.FORCE_STATE);
+                                    }
                                 }
                             }
                         }
                     }
                 }
+                sendChunkToPlayer(context.tacs(), context.holder());
             }
-            sendChunkToPlayer(context.tacs(), context.holder());
         }, ((IThreadedAnvilChunkStorage) context.tacs()).getMainThreadExecutor());
     }
 
