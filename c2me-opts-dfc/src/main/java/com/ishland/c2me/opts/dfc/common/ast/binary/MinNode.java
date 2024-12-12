@@ -33,6 +33,11 @@ public class MinNode extends AbstractBinaryNode {
     }
 
     @Override
+    public boolean canSwapOperandsSafely() {
+        return false;
+    }
+
+    @Override
     public void doBytecodeGenSingle(BytecodeGen.Context context, InstructionAdapter m, BytecodeGen.Context.LocalVarConsumer localVarConsumer) {
         super.doBytecodeGenSingle(context, m, localVarConsumer);
         m.invokestatic(
