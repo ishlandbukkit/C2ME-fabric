@@ -16,11 +16,14 @@ import it.unimi.dsi.fastutil.shorts.ShortList;
 import it.unimi.dsi.fastutil.shorts.ShortListIterator;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.FluidBlock;
+import net.minecraft.block.Blocks;
 import net.minecraft.server.world.ServerChunkLoadingManager;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.ChunkRegion;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.ChunkGenerationSteps;
 import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.chunk.ProtoChunk;
 import net.minecraft.world.chunk.WorldChunk;
@@ -34,6 +37,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -47,7 +51,7 @@ public class MixinServerAccessibleChunkSending {
 
     @Inject(method = "<clinit>", at = @At("RETURN"))
     private static void onCLInit(CallbackInfo ci) {
-        NewChunkStatus depStatus = NewChunkStatus.fromVanillaStatus(ChunkStatus.FULL);
+        NewChunkStatus depStatus = NewChunkStatus.fromVanillaStatus(ChunkStatus.LIGHT);
         deps = new KeyStatusPair[]{
                 new KeyStatusPair<>(new ChunkPos(-1, -1), depStatus),
                 new KeyStatusPair<>(new ChunkPos(-1, 0), depStatus),
@@ -66,31 +70,37 @@ public class MixinServerAccessibleChunkSending {
      */
     @Overwrite(remap = false)
     public CompletionStage<Void> upgradeToThis(ChunkLoadingContext context, Cancellable cancellable) {
-        return CompletableFuture.runAsync(() -> {
-            try (var ignored = ThreadInstrumentation.getCurrent().begin(new ChunkTaskWork(context, (ServerAccessibleChunkSending) (Object) this, true))) {
-                if (Config.suppressGhostMushrooms) {
-                    final WorldChunk chunk = (WorldChunk) context.holder().getItem().get().chunk();
-                    ServerWorld world = ((IThreadedAnvilChunkStorage) context.tacs()).getWorld();
+        ArrayList<BlockPos> blocksToRemove = new ArrayList<>();
+        if (Config.suppressGhostMushrooms) {
+            ServerWorld serverWorld = ((IThreadedAnvilChunkStorage) context.tacs()).getWorld();
+            ChunkState state = context.holder().getItem().get();
+            ChunkRegion chunkRegion = new ChunkRegion(serverWorld, context.chunks(), ChunkGenerationSteps.GENERATION.get(ChunkStatus.FULL), state.protoChunk());
+            Chunk chunk = state.chunk();
 
-                    ChunkPos chunkPos = context.holder().getKey();
+            ChunkPos chunkPos = context.holder().getKey();
 
-                    ShortList[] postProcessingLists = chunk.getPostProcessingLists();
-                    for (int i = 0; i < postProcessingLists.length; i++) {
-                        if (postProcessingLists[i] != null) {
-                            for (ShortListIterator iterator = postProcessingLists[i].iterator(); iterator.hasNext(); ) {
-                                short short_ = iterator.nextShort();
-                                BlockPos blockPos = ProtoChunk.joinBlockPos(short_, chunk.sectionIndexToCoord(i), chunkPos);
-                                BlockState blockState = chunk.getBlockState(blockPos);
+            ShortList[] postProcessingLists = chunk.getPostProcessingLists();
+            for (int i = 0; i < postProcessingLists.length; i++) {
+                if (postProcessingLists[i] != null) {
+                    for (ShortListIterator iterator = postProcessingLists[i].iterator(); iterator.hasNext(); ) {
+                        short short_ = iterator.nextShort();
+                        BlockPos blockPos = ProtoChunk.joinBlockPos(short_, chunk.sectionIndexToCoord(i), chunkPos);
+                        BlockState blockState = chunk.getBlockState(blockPos);
 
-                                if (!(blockState.getBlock() instanceof FluidBlock)) {
-                                    BlockState blockState2 = Block.postProcessState(blockState, world, blockPos);
-                                    if (blockState2 != blockState) {
-                                        world.setBlockState(blockPos, blockState2, Block.NO_REDRAW | Block.FORCE_STATE);
-                                    }
-                                }
+                        if (blockState.getBlock() == Blocks.BROWN_MUSHROOM || blockState.getBlock() == Blocks.RED_MUSHROOM) {
+                            if (!blockState.canPlaceAt(chunkRegion, blockPos)) {
+                                blocksToRemove.add(blockPos);
                             }
                         }
                     }
+                }
+            }
+        }
+        return CompletableFuture.runAsync(() -> {
+            try (var ignored = ThreadInstrumentation.getCurrent().begin(new ChunkTaskWork(context, (ServerAccessibleChunkSending) (Object) this, true))) {
+                ServerWorld serverWorld = ((IThreadedAnvilChunkStorage) context.tacs()).getWorld();
+                for (BlockPos blockPos : blocksToRemove) {
+                    serverWorld.setBlockState(blockPos, Blocks.AIR.getDefaultState(), Block.NO_REDRAW | Block.FORCE_STATE);
                 }
                 sendChunkToPlayer(context.tacs(), context.holder());
             }
