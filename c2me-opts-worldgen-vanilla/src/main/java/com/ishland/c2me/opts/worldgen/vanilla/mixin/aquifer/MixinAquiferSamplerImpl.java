@@ -119,6 +119,9 @@ public abstract class MixinAquiferSamplerImpl {
     @Unique
     private double c2me$mutableDoubleThingy;
 
+    @Unique
+    private short[] c2me$packedBlockPositions;
+
     @Inject(method = "<init>", at = @At("RETURN"))
     private void onInit(CallbackInfo info) {
         // preload position cache
@@ -127,6 +130,8 @@ public abstract class MixinAquiferSamplerImpl {
         }
 
         int sizeY = this.blockPositions.length / (this.sizeX * this.sizeZ);
+
+        this.c2me$packedBlockPositions = new short[this.blockPositions.length];
 
         final Random random = RandomUtils.getRandom(this.randomDeriver);
         // index: y, z, x
@@ -137,11 +142,15 @@ public abstract class MixinAquiferSamplerImpl {
                     final int y1 = y + this.startY;
                     final int z1 = z + this.startZ;
                     RandomUtils.derive(this.randomDeriver, random, x1, y1, z1);
-                    int x2 = x1 * 16 + random.nextInt(10);
-                    int y2 = y1 * 12 + random.nextInt(9);
-                    int z2 = z1 * 16 + random.nextInt(10);
+                    int r0 = random.nextInt(10);
+                    int r1 = random.nextInt(9);
+                    int r2 = random.nextInt(10);
+                    int x2 = x1 * 16 + r0;
+                    int y2 = y1 * 12 + r1;
+                    int z2 = z1 * 16 + r2;
                     int index = this.index(x1, y1, z1);
                     this.blockPositions[index] = BlockPos.asLong(x2, y2, z2);
+                    this.c2me$packedBlockPositions[index] = (short) ((r0 << 8) | (r1 << 4) | r2);
                 }
             }
         }
@@ -150,6 +159,21 @@ public abstract class MixinAquiferSamplerImpl {
                 throw new AssertionError("Array initialization");
             }
         }
+    }
+
+    @Unique
+    private static int c2me$unpackPackedX(int packed) {
+        return packed >> 8;
+    }
+
+    @Unique
+    private static int c2me$unpackPackedY(int packed) {
+        return (packed >> 4) & 0b1111;
+    }
+
+    @Unique
+    private static int c2me$unpackPackedZ(int packed) {
+        return packed & 0b1111;
     }
 
     /**
@@ -232,72 +256,64 @@ public abstract class MixinAquiferSamplerImpl {
         int gx = (x - 5) >> 4;
         int gy = Math.floorDiv(y + 1, 12);
         int gz = (z - 5) >> 4;
-        int dist1 = Integer.MAX_VALUE;
-        int dist2 = Integer.MAX_VALUE;
-        int dist3 = Integer.MAX_VALUE;
-        long pos1 = 0;
-        long pos2 = 0;
-        long pos3 = 0;
+        int A = Integer.MAX_VALUE;
+        int B = Integer.MAX_VALUE;
+        int C = Integer.MAX_VALUE;
 
+        int index = 12; // 12 max
         for (int offY = -1; offY <= 1; ++offY) {
+            int gymul = (gy + offY) * 12;
             for (int offZ = 0; offZ <= 1; ++offZ) {
-                // unrolled loop
+                int gzmul = (gz + offZ) << 4;
+
+                int index0 = index - 1;
                 int posIdx0 = this.index(gx, gy + offY, gz + offZ);
-
-                long position0 = this.blockPositions[posIdx0];
-
-                int dx0 = BlockPos.unpackLongX(position0) - x;
-                int dz0 = BlockPos.unpackLongZ(position0) - z;
-                int dy0 = BlockPos.unpackLongY(position0) - y;
+                int position0 = this.c2me$packedBlockPositions[posIdx0];
+                int dx0 = (gx << 4) + c2me$unpackPackedX(position0) - x;
+                int dy0 = gymul + c2me$unpackPackedY(position0) - y;
+                int dz0 = gzmul + c2me$unpackPackedZ(position0) - z;
                 int dist_0 = dx0 * dx0 + dy0 * dy0 + dz0 * dz0;
 
+                int index1 = index - 2;
                 int posIdx1 = posIdx0 + 1;
-                long position1 = this.blockPositions[posIdx1];
-                int dx1 = BlockPos.unpackLongX(position1) - x;
-                int dy1 = BlockPos.unpackLongY(position1) - y;
-                int dz1 = BlockPos.unpackLongZ(position1) - z;
+                int position1 = this.c2me$packedBlockPositions[posIdx1];
+                int dx1 = ((gx + 1) << 4) + c2me$unpackPackedX(position1) - x;
+                int dy1 = gymul + c2me$unpackPackedY(position1) - y;
+                int dz1 = gzmul + c2me$unpackPackedZ(position1) - z;
                 int dist_1 = dx1 * dx1 + dy1 * dy1 + dz1 * dz1;
-                if (dist3 >= dist_0) {
-                    pos3 = position0;
-                    dist3 = dist_0;
+
+                int p0 = (dist_0 << 20) | (index0 << 16) | posIdx0;
+                if (p0 <= C) {
+                    int n01 = Math.max(A, p0);
+                    A = Math.min(A, p0);
+
+                    int n02 = Math.max(B, n01);
+                    B = Math.min(B, n01);
+
+                    C = Math.min(C, n02);
                 }
-                if (dist2 >= dist_0) {
-                    pos3 = pos2;
-                    dist3 = dist2;
-                    pos2 = position0;
-                    dist2 = dist_0;
+
+                int p1 = (dist_1 << 20) | (index1 << 16) | posIdx1;
+                if (p1 <= C) {
+                    int n11 = Math.max(A, p1);
+                    A = Math.min(A, p1);
+
+                    int n12 = Math.max(B, n11);
+                    B = Math.min(B, n11);
+
+                    C = Math.min(C, n12);
                 }
-                if (dist1 >= dist_0) {
-                    pos2 = pos1;
-                    dist2 = dist1;
-                    pos1 = position0;
-                    dist1 = dist_0;
-                }
-                if (dist3 >= dist_1) {
-                    pos3 = position1;
-                    dist3 = dist_1;
-                }
-                if (dist2 >= dist_1) {
-                    pos3 = pos2;
-                    dist3 = dist2;
-                    pos2 = position1;
-                    dist2 = dist_1;
-                }
-                if (dist1 >= dist_1) {
-                    pos2 = pos1;
-                    dist2 = dist1;
-                    pos1 = position1;
-                    dist1 = dist_1;
-                }
+
+                index -= 2;
             }
         }
 
-        this.c2me$dist1 = dist1;
-        this.c2me$dist2 = dist2;
-        this.c2me$dist3 = dist3;
-        this.c2me$pos1 = pos1;
-        this.c2me$pos2 = pos2;
-        this.c2me$pos3 = pos3;
+        this.c2me$dist1 = A >> 20;
+        this.c2me$dist2 = B >> 20;
+        this.c2me$dist3 = C >> 20;
+        this.c2me$pos1 = this.blockPositions[A & 0xffff];
+        this.c2me$pos2 = this.blockPositions[B & 0xffff];
+        this.c2me$pos3 = this.blockPositions[C & 0xffff];
     }
 
     /**

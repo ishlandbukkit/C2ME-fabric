@@ -36,6 +36,7 @@ public class AddressingBenchmark {
     private final int c2me$shiftZ = 2;
 
     private final long[] blockPositions = new long[sizeX * sizeZ * sizeY];
+    private final int[] c2me$packedBlockPositions = new int[sizeX * sizeZ * sizeY];
     private final int[] c2me$blockPos = new int[((1 << c2me$shiftY) * sizeY) << 2];
     private final long[] c2me$blockPosPacked = new long[(1 << c2me$shiftY) * sizeY];
 
@@ -47,9 +48,12 @@ public class AddressingBenchmark {
                     final int x1 = x + this.startX;
                     final int y1 = y + this.startY;
                     final int z1 = z + this.startZ;
-                    int x2 = x1 * 16 + random.nextInt(10);
-                    int y2 = y1 * 12 + random.nextInt(9);
-                    int z2 = z1 * 16 + random.nextInt(10);
+                    int r0 = random.nextInt(10);
+                    int r1 = random.nextInt(9);
+                    int r2 = random.nextInt(10);
+                    int x2 = x1 * 16 + r0;
+                    int y2 = y1 * 12 + r1;
+                    int z2 = z1 * 16 + r2;
                     int index = this.index(x1, y1, z1);
                     int fastIdx = this.c2me$fastIdx(x1, y1, z1);
                     this.blockPositions[index] = BlockPos.asLong(x2, y2, z2);
@@ -58,9 +62,22 @@ public class AddressingBenchmark {
                     this.c2me$blockPos[shiftedIdx + 0] = x2;
                     this.c2me$blockPos[shiftedIdx + 1] = y2;
                     this.c2me$blockPos[shiftedIdx + 2] = z2;
+                    this.c2me$packedBlockPositions[index] = (short) ((r0 << 8) | (r1 << 4) | r2);
                 }
             }
         }
+    }
+
+    private static int c2me$unpackPackedX(int packed) {
+        return packed >> 8;
+    }
+
+    private static int c2me$unpackPackedY(int packed) {
+        return (packed >> 4) & 0b1111;
+    }
+
+    private static int c2me$unpackPackedZ(int packed) {
+        return packed & 0b1111;
     }
 
     private int c2me$fastIdx(int x, int y, int z) {
@@ -566,6 +583,226 @@ public class AddressingBenchmark {
         bh.consume(pos3);
     }
 
+    private void vanillaOpt4(int x, int y, int z, Blackhole bh) {
+        int gx = (x - 5) >> 4;
+        int gy = Math.floorDiv(y + 1, 12);
+        int gz = (z - 5) >> 4;
+        int A = Integer.MAX_VALUE;
+        int B = Integer.MAX_VALUE;
+        int C = Integer.MAX_VALUE;
+
+        for (int offY = -1; offY <= 1; ++offY) {
+            for (int offZ = 0; offZ <= 1; ++offZ) {
+                int posIdx0 = this.index(gx, gy + offY, gz + offZ);
+                int posIdx1 = posIdx0 + 1;
+
+                long position0 = this.blockPositions[posIdx0];
+                long position1 = this.blockPositions[posIdx1];
+
+                int dx0 = BlockPos.unpackLongX(position0) - x;
+                int dx1 = BlockPos.unpackLongX(position1) - x;
+                int dy0 = BlockPos.unpackLongY(position0) - y;
+                int dy1 = BlockPos.unpackLongY(position1) - y;
+                int dz0 = BlockPos.unpackLongZ(position0) - z;
+                int dz1 = BlockPos.unpackLongZ(position1) - z;
+                int dist_0 = dx0 * dx0 + dy0 * dy0 + dz0 * dz0;
+                int dist_1 = dx1 * dx1 + dy1 * dy1 + dz1 * dz1;
+
+
+                {
+                    int p = (dist_0 << 9) | posIdx0;//Dont know what shift is min
+                    int n1 = Math.max(A, p);
+                    A = Math.min(A, p);
+
+                    int n2 = Math.max(B, n1);
+                    B = Math.min(B, n1);
+
+                    C = Math.min(C, n2);
+                }
+
+                {
+                    int p1 = (dist_1<<9)|posIdx1;//Dont know what shift is min
+
+                    int n1 = Math.max(A, p1);
+                    A = Math.min(A, p1);
+
+                    int n2 = Math.max(B, n1);
+                    B = Math.min(B, n1);
+
+                    C = Math.min(C, n2);
+                }
+            }
+        }
+
+        bh.consume(A>>>9);
+        bh.consume(B>>>9);
+        bh.consume(C>>>9);
+        bh.consume(0);
+        bh.consume(0);
+        bh.consume(0);
+        bh.consume(this.blockPositions[A&0x1F]);
+        bh.consume(this.blockPositions[B&0x1F]);
+        bh.consume(this.blockPositions[C&0x1F]);
+    }
+
+    private void vanillaOpt5(int x, int y, int z, Blackhole bh) {
+        int gx = (x - 5) >> 4;
+        int gy = Math.floorDiv(y + 1, 12);
+        int gz = (z - 5) >> 4;
+        int dist1 = Integer.MAX_VALUE;
+        int dist2 = Integer.MAX_VALUE;
+        int dist3 = Integer.MAX_VALUE;
+        int idx1 = 0;
+        int idx2 = 0;
+        int idx3 = 0;
+        long pos1 = 0;
+        long pos2 = 0;
+        long pos3 = 0;
+
+        for (int offY = -1; offY <= 1; ++offY) {
+            for (int offZ = 0; offZ <= 1; ++offZ) {
+                int posIdx0 = this.index(gx, gy + offY, gz + offZ);
+
+                int position0 = this.c2me$packedBlockPositions[posIdx0];
+
+                int gymul = (gy + offY) * 12;
+                int gzmul = (gz + offZ) * 16;
+
+                int dx0 = gx * 16 + c2me$unpackPackedX(position0) - x;
+                int dy0 = gymul + c2me$unpackPackedY(position0) - y;
+                int dz0 = gzmul + c2me$unpackPackedZ(position0) - z;
+                int dist_0 = dx0 * dx0 + dy0 * dy0 + dz0 * dz0;
+
+                int posIdx1 = posIdx0 + 1;
+                int position1 = this.c2me$packedBlockPositions[posIdx1];
+                int dx1 = (gx + 1) * 16 + c2me$unpackPackedX(position1) - x;
+                int dy1 = gymul + c2me$unpackPackedY(position1) - y;
+                int dz1 = gzmul + c2me$unpackPackedZ(position1) - z;
+                int dist_1 = dx1 * dx1 + dy1 * dy1 + dz1 * dz1;
+                if (dist3 >= dist_0) {
+                    idx3 = posIdx0;
+                    dist3 = dist_0;
+                }
+                if (dist2 >= dist_0) {
+                    idx3 = idx2;
+                    dist3 = dist2;
+                    idx2 = posIdx0;
+                    dist2 = dist_0;
+                }
+                if (dist1 >= dist_0) {
+                    idx2 = idx1;
+                    dist2 = dist1;
+                    idx1 = posIdx0;
+                    dist1 = dist_0;
+                }
+                if (dist3 >= dist_1) {
+                    idx3 = posIdx1;
+                    dist3 = dist_1;
+                }
+                if (dist2 >= dist_1) {
+                    idx3 = idx2;
+                    dist3 = dist2;
+                    idx2 = posIdx1;
+                    dist2 = dist_1;
+                }
+                if (dist1 >= dist_1) {
+                    idx2 = idx1;
+                    dist2 = dist1;
+                    idx1 = posIdx1;
+                    dist1 = dist_1;
+                }
+            }
+        }
+
+        pos1 = this.blockPositions[idx1];
+        pos2 = this.blockPositions[idx2];
+        pos3 = this.blockPositions[idx3];
+
+        bh.consume(dist1);
+        bh.consume(dist2);
+        bh.consume(dist3);
+        bh.consume(0);
+        bh.consume(0);
+        bh.consume(0);
+        bh.consume(pos1);
+        bh.consume(pos2);
+        bh.consume(pos3);
+    }
+
+    private void vanillaOpt6(int x, int y, int z, Blackhole bh) {
+        int gx = (x - 5) >> 4;
+        int gy = Math.floorDiv(y + 1, 12);
+        int gz = (z - 5) >> 4;
+        int A = Integer.MAX_VALUE;
+        int B = Integer.MAX_VALUE;
+        int C = Integer.MAX_VALUE;
+
+        int index = 12; // 12 max
+        for (int offY = -1; offY <= 1; ++offY) {
+            int gymul = (gy + offY) * 12;
+            for (int offZ = 0; offZ <= 1; ++offZ) {
+                int gzmul = (gz + offZ) << 4;
+
+                int index0 = index - 1;
+                int posIdx0 = this.index(gx, gy + offY, gz + offZ);
+                int position0 = this.c2me$packedBlockPositions[posIdx0];
+                int dx0 = (gx << 4) + c2me$unpackPackedX(position0) - x;
+                int dy0 = gymul + c2me$unpackPackedY(position0) - y;
+                int dz0 = gzmul + c2me$unpackPackedZ(position0) - z;
+                int dist_0 = dx0 * dx0 + dy0 * dy0 + dz0 * dz0;
+
+                int index1 = index - 2;
+                int posIdx1 = posIdx0 + 1;
+                int position1 = this.c2me$packedBlockPositions[posIdx1];
+                int dx1 = ((gx + 1) << 4) + c2me$unpackPackedX(position1) - x;
+                int dy1 = gymul + c2me$unpackPackedY(position1) - y;
+                int dz1 = gzmul + c2me$unpackPackedZ(position1) - z;
+                int dist_1 = dx1 * dx1 + dy1 * dy1 + dz1 * dz1;
+
+                int p0 = (dist_0 << 20) | (index0 << 16) | posIdx0;
+                if (p0 <= C) {
+                    int n01 = Math.max(A, p0);
+                    A = Math.min(A, p0);
+
+                    int n02 = Math.max(B, n01);
+                    B = Math.min(B, n01);
+
+                    C = Math.min(C, n02);
+                }
+
+                int p1 = (dist_1 << 20) | (index1 << 16) | posIdx1;
+                if (p1 <= C) {
+                    int n11 = Math.max(A, p1);
+                    A = Math.min(A, p1);
+
+                    int n12 = Math.max(B, n11);
+                    B = Math.min(B, n11);
+
+                    C = Math.min(C, n12);
+                }
+
+                index -= 2;
+            }
+        }
+
+        int dist1 = A >> 20;
+        int dist2 = B >> 20;
+        int dist3 = C >> 20;
+        long pos1 = this.blockPositions[A&0xffff];
+        long pos2 = this.blockPositions[B&0xffff];
+        long pos3 = this.blockPositions[C&0xffff];
+
+        bh.consume(dist1);
+        bh.consume(dist2);
+        bh.consume(dist3);
+        bh.consume(0);
+        bh.consume(0);
+        bh.consume(0);
+        bh.consume(pos1);
+        bh.consume(pos2);
+        bh.consume(pos3);
+    }
+
     @Benchmark
     public void benchSolution1(Blackhole bh) {
         for (int x = 0; x < 16; x ++) {
@@ -649,6 +886,39 @@ public class AddressingBenchmark {
             for (int z = 304; z < 320; z ++) {
                 for (int y = -64; y < 320; y ++) {
                     vanillaOpt3(x, y, z, bh);
+                }
+            }
+        }
+    }
+
+    @Benchmark
+    public void benchVanillaOpt4(Blackhole bh) {
+        for (int x = 0; x < 16; x ++) {
+            for (int z = 304; z < 320; z ++) {
+                for (int y = -64; y < 320; y ++) {
+                    vanillaOpt4(x, y, z, bh);
+                }
+            }
+        }
+    }
+
+    @Benchmark
+    public void benchVanillaOpt5(Blackhole bh) {
+        for (int x = 0; x < 16; x ++) {
+            for (int z = 304; z < 320; z ++) {
+                for (int y = -64; y < 320; y ++) {
+                    vanillaOpt5(x, y, z, bh);
+                }
+            }
+        }
+    }
+
+    @Benchmark
+    public void benchVanillaOpt6(Blackhole bh) {
+        for (int x = 0; x < 16; x ++) {
+            for (int z = 304; z < 320; z ++) {
+                for (int y = -64; y < 320; y ++) {
+                    vanillaOpt6(x, y, z, bh);
                 }
             }
         }
