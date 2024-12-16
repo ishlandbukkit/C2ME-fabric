@@ -251,8 +251,7 @@ public final class ChunkDataSerializer {
     }
 
     private static void putShortListArray(ShortList[] data, NbtWriter writer, byte[] name) {
-        long start = writer.startList(name, NbtElement.LIST_TYPE);
-        int count = 0;
+        writer.startFixedList(name, data.length, NbtElement.LIST_TYPE);
 
         for (ShortList shortList : data) {
             if (shortList != null) {
@@ -260,11 +259,10 @@ public final class ChunkDataSerializer {
                 for (Short short_ : shortList) {
                     writer.putShortEntry(short_);
                 }
-                count ++;
+            } else {
+                writer.startFixedListEntry(0, NbtElement.SHORT_TYPE);
             }
         }
-
-        writer.finishList(start, count);
     }
 
     private static void writeSectionData(
