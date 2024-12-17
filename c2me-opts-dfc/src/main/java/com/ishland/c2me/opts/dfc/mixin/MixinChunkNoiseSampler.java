@@ -2,6 +2,7 @@ package com.ishland.c2me.opts.dfc.mixin;
 
 import com.ishland.c2me.opts.dfc.common.ducks.IArrayCacheCapable;
 import com.ishland.c2me.opts.dfc.common.ducks.ICoordinatesFilling;
+import com.ishland.c2me.opts.dfc.common.ducks.IPreloadedCoordinates;
 import com.ishland.c2me.opts.dfc.common.gen.DelegatingBlendingAwareVisitor;
 import com.ishland.c2me.opts.dfc.common.util.ArrayCache;
 import net.minecraft.world.gen.chunk.Blender;
@@ -19,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ChunkNoiseSampler.class)
-public abstract class MixinChunkNoiseSampler implements IArrayCacheCapable, ICoordinatesFilling {
+public abstract class MixinChunkNoiseSampler implements IArrayCacheCapable, ICoordinatesFilling, IPreloadedCoordinates {
 
     @Shadow @Final private int verticalCellBlockCount;
     @Shadow @Final private int horizontalCellBlockCount;
@@ -27,6 +28,19 @@ public abstract class MixinChunkNoiseSampler implements IArrayCacheCapable, ICoo
     @Shadow private int startBlockX;
     @Shadow private int startBlockZ;
     @Shadow private boolean isInInterpolationLoop;
+
+    @Unique
+    private int c2me$oldStartBlockX = Integer.MAX_VALUE;
+    @Unique
+    private int c2me$oldStartBlockY = Integer.MAX_VALUE;
+    @Unique
+    private int c2me$oldStartBlockZ = Integer.MAX_VALUE;
+    @Unique
+    private int[] c2me$cachedXArray;
+    @Unique
+    private int[] c2me$cachedYArray;
+    @Unique
+    private int[] c2me$cachedZArray;
 
     @Shadow public abstract Blender getBlender();
 
@@ -55,6 +69,41 @@ public abstract class MixinChunkNoiseSampler implements IArrayCacheCapable, ICoo
                 }
             }
         }
+    }
+
+    @Unique
+    private void c2me$reloadCachedArrays() {
+        if (this.c2me$cachedXArray == null || this.c2me$cachedYArray == null || this.c2me$cachedZArray == null) {
+            int length = this.horizontalCellBlockCount * this.horizontalCellBlockCount * this.verticalCellBlockCount;
+            ArrayCache arrayCache = this.c2me$getArrayCache();
+            this.c2me$cachedXArray = arrayCache.getIntArray(length, false);
+            this.c2me$cachedYArray = arrayCache.getIntArray(length, false);
+            this.c2me$cachedZArray = arrayCache.getIntArray(length, false);
+        }
+        if (this.c2me$oldStartBlockX != this.startBlockX || this.c2me$oldStartBlockY != this.startBlockY || this.c2me$oldStartBlockZ != this.startBlockZ) {
+            this.c2me$fillCoordinates(this.c2me$cachedXArray, this.c2me$cachedYArray, this.c2me$cachedZArray);
+            this.c2me$oldStartBlockX = this.startBlockX;
+            this.c2me$oldStartBlockY = this.startBlockY;
+            this.c2me$oldStartBlockZ = this.startBlockZ;
+        }
+    }
+
+    @Override
+    public int[] c2me$getXArray() {
+        this.c2me$reloadCachedArrays();
+        return this.c2me$cachedXArray;
+    }
+
+    @Override
+    public int[] c2me$getYArray() {
+        this.c2me$reloadCachedArrays();
+        return this.c2me$cachedYArray;
+    }
+
+    @Override
+    public int[] c2me$getZArray() {
+        this.c2me$reloadCachedArrays();
+        return this.c2me$cachedZArray;
     }
 
     @Inject(method = "getActualDensityFunctionImpl", at = @At("HEAD"))

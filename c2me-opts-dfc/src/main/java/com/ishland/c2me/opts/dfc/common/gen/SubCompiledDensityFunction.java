@@ -5,6 +5,7 @@ import com.ishland.c2me.opts.dfc.common.ast.EvalType;
 import com.ishland.c2me.opts.dfc.common.ducks.IArrayCacheCapable;
 import com.ishland.c2me.opts.dfc.common.ducks.IBlendingAwareVisitor;
 import com.ishland.c2me.opts.dfc.common.ducks.ICoordinatesFilling;
+import com.ishland.c2me.opts.dfc.common.ducks.IPreloadedCoordinates;
 import com.ishland.c2me.opts.dfc.common.util.ArrayCache;
 import com.ishland.c2me.opts.dfc.common.vif.EachApplierVanillaInterface;
 import net.minecraft.util.dynamic.CodecHolder;
@@ -75,17 +76,26 @@ public class SubCompiledDensityFunction implements DensityFunction {
         }
 
         ArrayCache cache = applier instanceof IArrayCacheCapable cacheCapable ? cacheCapable.c2me$getArrayCache() : new ArrayCache();
-        int[] x = cache.getIntArray(densities.length, false);
-        int[] y = cache.getIntArray(densities.length, false);
-        int[] z = cache.getIntArray(densities.length, false);
-        if (applier instanceof ICoordinatesFilling coordinatesFilling) {
-            coordinatesFilling.c2me$fillCoordinates(x, y, z);
+        int[] x;
+        int[] y;
+        int[] z;
+        if (applier instanceof IPreloadedCoordinates preloadedCoordinates) {
+            x = preloadedCoordinates.c2me$getXArray();
+            y = preloadedCoordinates.c2me$getYArray();
+            z = preloadedCoordinates.c2me$getZArray();
         } else {
-            for (int i = 0; i < densities.length; i ++) {
-                NoisePos pos = applier.at(i);
-                x[i] = pos.blockX();
-                y[i] = pos.blockY();
-                z[i] = pos.blockZ();
+            x = cache.getIntArray(densities.length, false);
+            y = cache.getIntArray(densities.length, false);
+            z = cache.getIntArray(densities.length, false);
+            if (applier instanceof ICoordinatesFilling coordinatesFilling) {
+                coordinatesFilling.c2me$fillCoordinates(x, y, z);
+            } else {
+                for (int i = 0; i < densities.length; i ++) {
+                    NoisePos pos = applier.at(i);
+                    x[i] = pos.blockX();
+                    y[i] = pos.blockY();
+                    z[i] = pos.blockZ();
+                }
             }
         }
         this.multiMethod.evalMulti(densities, x, y, z, EvalType.from(applier), cache);
