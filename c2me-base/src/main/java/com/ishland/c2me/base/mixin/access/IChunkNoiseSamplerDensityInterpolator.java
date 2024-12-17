@@ -16,4 +16,7 @@ public interface IChunkNoiseSamplerDensityInterpolator {
     @Invoker
     void invokeInterpolateZ(double deltaZ);
 
+    @Invoker
+    void invokeSwapBuffers();
+
 }

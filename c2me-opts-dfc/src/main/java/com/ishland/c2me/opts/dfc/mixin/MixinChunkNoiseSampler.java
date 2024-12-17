@@ -1,5 +1,6 @@
 package com.ishland.c2me.opts.dfc.mixin;
 
+import com.ishland.c2me.base.mixin.access.IChunkNoiseSamplerDensityInterpolator;
 import com.ishland.c2me.opts.dfc.common.ducks.IArrayCacheCapable;
 import com.ishland.c2me.opts.dfc.common.ducks.ICoordinatesFilling;
 import com.ishland.c2me.opts.dfc.common.ducks.IPreloadedCoordinates;
@@ -12,12 +13,15 @@ import net.minecraft.world.gen.densityfunction.DensityFunctionTypes;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.util.List;
 
 @Mixin(ChunkNoiseSampler.class)
 public abstract class MixinChunkNoiseSampler implements IArrayCacheCapable, ICoordinatesFilling, IPreloadedCoordinates {
@@ -42,8 +46,16 @@ public abstract class MixinChunkNoiseSampler implements IArrayCacheCapable, ICoo
     @Unique
     private int[] c2me$cachedZArray;
 
+    @Unique
+    ChunkNoiseSampler.DensityInterpolator[] c2me$interpolatorsArray;
+
     @Shadow public abstract Blender getBlender();
 
+    @Shadow @Final private List<ChunkNoiseSampler.DensityInterpolator> interpolators;
+    @Shadow private int cellBlockY;
+    @Shadow private int cellBlockX;
+    @Shadow private int cellBlockZ;
+    @Shadow private long sampleUniqueIndex;
     private final ArrayCache c2me$arrayCache = new ArrayCache();
 
     @Override
@@ -126,6 +138,65 @@ public abstract class MixinChunkNoiseSampler implements IArrayCacheCapable, ICoo
     @ModifyArg(method = {"<init>", "createMultiNoiseSampler"}, at = @At(value = "INVOKE", target = "Lnet/minecraft/world/gen/densityfunction/DensityFunction;apply(Lnet/minecraft/world/gen/densityfunction/DensityFunction$DensityFunctionVisitor;)Lnet/minecraft/world/gen/densityfunction/DensityFunction;"), require = 7, expect = 7)
     private DensityFunction.DensityFunctionVisitor modifyVisitor2(DensityFunction.DensityFunctionVisitor visitor) {
         return c2me$getDelegatingBlendingAwareVisitor(visitor);
+    }
+
+    private ChunkNoiseSampler.DensityInterpolator[] c2me$initInterpolatorsArray() {
+        ChunkNoiseSampler.DensityInterpolator[] interpolatorsArray = this.c2me$interpolatorsArray;
+        if (interpolatorsArray == null) {
+            interpolatorsArray = this.c2me$interpolatorsArray = this.interpolators.toArray(ChunkNoiseSampler.DensityInterpolator[]::new);
+        }
+        return interpolatorsArray;
+    }
+
+    /**
+     * @author ishland
+     * @reason array iteration
+     */
+    @Overwrite
+    public void interpolateY(int blockY, double deltaY) {
+        this.cellBlockY = blockY - this.startBlockY;
+
+        for (ChunkNoiseSampler.DensityInterpolator densityInterpolator : this.c2me$initInterpolatorsArray()) {
+            ((IChunkNoiseSamplerDensityInterpolator) densityInterpolator).invokeInterpolateY(deltaY);
+        }
+    }
+
+    /**
+     * @author ishland
+     * @reason array iteration
+     */
+    @Overwrite
+    public void interpolateX(int blockX, double deltaX) {
+        this.cellBlockX = blockX - this.startBlockX;
+
+        for (ChunkNoiseSampler.DensityInterpolator densityInterpolator : this.c2me$initInterpolatorsArray()) {
+            ((IChunkNoiseSamplerDensityInterpolator) densityInterpolator).invokeInterpolateX(deltaX);
+        }
+    }
+
+    /**
+     * @author ishland
+     * @reason array iteration
+     */
+    @Overwrite
+    public void interpolateZ(int blockZ, double deltaZ) {
+        this.cellBlockZ = blockZ - this.startBlockZ;
+        this.sampleUniqueIndex++;
+
+        for (ChunkNoiseSampler.DensityInterpolator densityInterpolator : this.c2me$initInterpolatorsArray()) {
+            ((IChunkNoiseSamplerDensityInterpolator) densityInterpolator).invokeInterpolateZ(deltaZ);
+        }
+    }
+
+    /**
+     * @author ishland
+     * @reason array iteration
+     */
+    @Overwrite
+    public void swapBuffers() {
+        for (ChunkNoiseSampler.DensityInterpolator densityInterpolator : this.c2me$initInterpolatorsArray()) {
+            ((IChunkNoiseSamplerDensityInterpolator) densityInterpolator).invokeSwapBuffers();
+        }
     }
 
 }
