@@ -145,8 +145,7 @@ public abstract class MixinChunkNoiseSamplerDensityInterpolator implements IFast
                     }
                     return true;
                 } else {
-                    Arrays.fill(res, this.result);
-                    return true;
+                    return false;
                 }
             }
         }
