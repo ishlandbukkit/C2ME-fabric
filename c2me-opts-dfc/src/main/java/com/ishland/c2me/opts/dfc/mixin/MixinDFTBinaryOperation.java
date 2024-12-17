@@ -9,6 +9,9 @@ import net.minecraft.world.gen.densityfunction.DensityFunctionTypes;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(DensityFunctionTypes.BinaryOperation.class)
 public class MixinDFTBinaryOperation {
@@ -19,8 +22,8 @@ public class MixinDFTBinaryOperation {
 
     @Shadow @Final private DensityFunction argument2;
 
-    @WrapMethod(method = "fill")
-    private void wrapFill(double[] densities, DensityFunction.EachApplier applier, Operation<Void> original) {
+    @Inject(method = "fill", at = @At("HEAD"), cancellable = true)
+    private void wrapFill(double[] densities, DensityFunction.EachApplier applier, CallbackInfo ci) {
         if (this.type == DensityFunctionTypes.BinaryOperationLike.Type.ADD) {
             this.argument1.fill(densities, applier);
             double[] ds;
@@ -42,8 +45,8 @@ public class MixinDFTBinaryOperation {
             if (arrayCache != null) {
                 arrayCache.recycle(ds);
             }
-        } else {
-            original.call(densities, applier);
+
+            ci.cancel();
         }
     }
 
