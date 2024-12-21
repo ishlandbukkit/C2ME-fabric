@@ -22,6 +22,7 @@
     "async_serialization.MixinSerializingRegionBasedStorage",
     "async_serialization.MixinStorageIoWorker",
     "async_serialization.MixinThreadedAnvilChunkStorage",
-    "async_serialization.gc_free_serializer.MixinChunkDataSerializer"
+    "async_serialization.gc_free_serializer.MixinChunkDataSerializer",
+    "fixes.MixinServerEntityManager"
   ]
 }
