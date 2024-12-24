@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Function;
+import java.util.function.LongFunction;
 
 public class C2MEStorageThread extends Thread {
 
@@ -53,6 +54,7 @@ public class C2MEStorageThread extends Thread {
     private final Long2ReferenceLinkedOpenHashMap<CompletionStage<Either<NbtCompound, byte[]>>> writeBacklog = new Long2ReferenceLinkedOpenHashMap<>();
     private final Long2ReferenceLinkedOpenHashMap<CompletionStage<Either<NbtCompound, byte[]>>> cache = new Long2ReferenceLinkedOpenHashMap<>();
     private final Queue<Runnable> pendingTasks = PlatformDependent.newMpscQueue();
+    private final LongFunction<Executor> backgroundExecutorSupplier;
     private final Executor executor = command -> {
         if (Thread.currentThread() == this) {
             command.run();
@@ -65,8 +67,14 @@ public class C2MEStorageThread extends Thread {
     private final ObjectArraySet<CompletableFuture<Void>> writeFutures = new ObjectArraySet<>();
     private final Object sync = new Object();
 
-    public C2MEStorageThread(StorageKey arg, Path path, boolean dsync) {
+    public C2MEStorageThread(StorageKey arg, Path path, boolean dsync, LongFunction<Executor> backgroundExecutorSupplier) {
         this.storage = new RegionBasedStorage(arg, path, dsync);
+        if (backgroundExecutorSupplier != null) {
+            this.backgroundExecutorSupplier = backgroundExecutorSupplier;
+        } else {
+            Executor executor1 = GlobalExecutors.prioritizedScheduler.executor(16);
+            this.backgroundExecutorSupplier = unused -> executor1;
+        }
         this.setName("C2ME Storage #%d".formatted(SERIAL.incrementAndGet()));
         this.setDaemon(true);
         this.setUncaughtExceptionHandler((t, e) -> LOGGER.error("Thread %s died".formatted(t), e));
@@ -258,14 +266,14 @@ public class C2MEStorageThread extends Thread {
                         future.complete(null);
                     } else if (cached.left().isPresent()) {
                         if (scanner != null) {
-                            GlobalExecutors.prioritizedScheduler.schedule(() -> {
+                            backgroundExecutorSupplier.apply(pos).execute(() -> {
                                 try {
                                     cached.left().get().accept(scanner);
                                     future.complete(null);
                                 } catch (Throwable t) {
                                     future.completeExceptionally(t);
                                 }
-                            }, 16);
+                            });
                         } else {
                             future.complete(cached.left().get());
                         }
@@ -284,7 +292,7 @@ public class C2MEStorageThread extends Thread {
                                         SneakyThrow.sneaky(e);
                                         return null; // unreachable
                                     }
-                                }, GlobalExecutors.prioritizedScheduler.executor(16))
+                                }, backgroundExecutorSupplier.apply(pos))
                                 .thenAccept(future::complete)
                                 .exceptionally(throwable1 -> {
                                     future.completeExceptionally(throwable1);
@@ -350,7 +358,7 @@ public class C2MEStorageThread extends Thread {
                     SneakyThrow.sneaky(t);
                     return null; // Unreachable anyway
                 }
-            }, GlobalExecutors.prioritizedScheduler.executor(16)).handle((compound, throwable) -> {
+            }, backgroundExecutorSupplier.apply(pos)).handle((compound, throwable) -> {
                 if (throwable != null) future.completeExceptionally(throwable);
                 else future.complete(compound);
                 return null;
@@ -407,7 +415,7 @@ public class C2MEStorageThread extends Thread {
                         SneakyThrow.sneaky(t);
                         return null; // Unreachable anyway
                     }
-                }, GlobalExecutors.prioritizedScheduler.executor(16)).thenAcceptAsync(bytes -> {
+                }, GlobalExecutors.prioritizedScheduler.executor(16)).thenAcceptAsync(bytes -> { // still use priority 16 for writes
                     if (this.cache.remove(pos, nbtFuture)) { // only write if match to avoid overwrites
                         try {
                             final ChunkPos pos1 = new ChunkPos(pos);
