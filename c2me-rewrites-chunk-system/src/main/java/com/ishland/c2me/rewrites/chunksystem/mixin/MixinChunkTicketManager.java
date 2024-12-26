@@ -32,8 +32,8 @@ public class MixinChunkTicketManager {
 
     @WrapOperation(method = "<init>", at = @At(value = "NEW", target = "(Ljava/util/List;Ljava/util/concurrent/Executor;I)Lnet/minecraft/server/world/ChunkTaskPrioritySystem;"))
     private ChunkTaskPrioritySystem syncPlayerTickets(List actors, Executor executor, int maxQueues, Operation<ChunkTaskPrioritySystem> original) {
-        if (Config.syncPlayerTickets && this instanceof ITACSTicketManager itacsTicketManager) {
-            return original.call(actors, ((IThreadedAnvilChunkStorage) itacsTicketManager.getField_17443()).getWorld().getServer(), maxQueues); // improve player ticket consistency
+        if (Config.syncPlayerTickets) {
+            return original.call(actors, (Executor) Runnable::run, maxQueues); // improve player ticket consistency
         } else {
             return original.call(actors, executor, maxQueues);
         }
