@@ -166,23 +166,18 @@ public class ReadFromDisk extends NewChunkStatus {
                             LifecycleEventInvoker.invokeChunkUnload(((IThreadedAnvilChunkStorage) context.tacs()).getWorld(), worldChunk);
                         }
 
+                        CompletionStage<Void> asyncSaveFuture;
                         if ((context.holder().getFlags() & ItemHolder.FLAG_BROKEN) != 0 && chunk instanceof ProtoChunk) { // do not save broken ProtoChunks
                             LOGGER.warn("Not saving partially generated broken chunk {}", context.holder().getKey());
-                            return CompletableFuture.completedStage((Void) null);
+                            asyncSaveFuture = CompletableFuture.completedStage((Void) null);
                         } else if (chunk instanceof WorldChunk && !chunkState.reachedStatus().isAtLeast(ChunkStatus.FULL)) {
                             // do not save WorldChunks that doesn't reach full status: Vanilla behavior
                             // If saved, block entities will be lost
-                            return CompletableFuture.completedStage((Void) null);
+                            asyncSaveFuture = CompletableFuture.completedStage((Void) null);
                         } else {
-                            return asyncSave(context, chunk);
+                            asyncSaveFuture = asyncSave(context, chunk);
                         }
-                    }
-                }, ((IThreadedAnvilChunkStorage) context.tacs()).getMainThreadExecutor())
-                .thenCompose(Function.identity())
-                .thenAcceptAsync(unused -> {
-                    try (var ignored = ThreadInstrumentation.getCurrent().begin(new ChunkTaskWork(context, this, false))) {
-                        Chunk chunk = context.holder().getItem().get().chunk();
-                        if (chunk instanceof WrapperProtoChunk protoChunk) chunk = protoChunk.getWrappedChunk();
+
                         if (loadedToWorld.get() && chunk instanceof WorldChunk worldChunk) {
                             ((IThreadedAnvilChunkStorage) context.tacs()).getWorld().unloadEntities(worldChunk);
                         }
@@ -195,8 +190,11 @@ public class ReadFromDisk extends NewChunkStatus {
                         ((IPOIUnloading) ((IThreadedAnvilChunkStorage) context.tacs()).getPointOfInterestStorage()).c2me$unloadPoi(context.holder().getKey());
 
                         context.holder().getItem().set(new ChunkState(null, null, null));
+
+                        return asyncSaveFuture;
                     }
-                }, ((IThreadedAnvilChunkStorage) context.tacs()).getMainThreadExecutor());
+                }, ((IThreadedAnvilChunkStorage) context.tacs()).getMainThreadExecutor())
+                .thenCompose(Function.identity());
     }
 
     private CompletionStage<Void> asyncSave(ChunkLoadingContext context, Chunk chunk) {
