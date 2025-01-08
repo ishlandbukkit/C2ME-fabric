@@ -98,4 +98,23 @@ public class Bindings {
         }
     }
 
+    private static final MethodHandle MH_c2me_natives_aquifer_refreshDistPosIdx = bind(BindingsTemplate.c2me_natives_aquifer_refreshDistPosIdx, "c2me_natives_aquifer_refreshDistPosIdx");
+    private static final MethodHandle MH_c2me_natives_aquifer_refreshDistPosIdx_ptr = bind(BindingsTemplate.c2me_natives_aquifer_refreshDistPosIdx_ptr, "c2me_natives_aquifer_refreshDistPosIdx");
+
+    public static void c2me_natives_aquifer_refreshDistPosIdx(MemorySegment packedBlockPositions, MemorySegment res, MemorySegment aquiferData, int x, int y, int z) {
+        try {
+            MH_c2me_natives_aquifer_refreshDistPosIdx.invokeExact(packedBlockPositions, res, aquiferData, x, y, z);
+        } catch (Throwable t) {
+            throw new RuntimeException(t);
+        }
+    }
+
+    public static void c2me_natives_aquifer_refreshDistPosIdx(long packedBlockPositions_ptr, long res_ptr, long aquiferData_ptr, int x, int y, int z) {
+        try {
+            MH_c2me_natives_aquifer_refreshDistPosIdx_ptr.invokeExact(packedBlockPositions_ptr, res_ptr, aquiferData_ptr, x, y, z);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }

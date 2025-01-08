@@ -34,6 +34,15 @@ typedef const double *aligned_double_ptr __attribute__((align_value(64)));
 typedef const uint8_t *aligned_uint8_ptr __attribute__((align_value(64)));
 typedef const uint32_t *aligned_uint32_ptr __attribute__((align_value(64)));
 
+#define max(a, b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a >= _b ? _a : _b; })
+#define min(a, b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a <= _b ? _a : _b; })
+
 #pragma clang attribute push (__attribute__((always_inline)), apply_to = function)
 
 static inline __attribute__((const)) float fminf(const float x, const float y) {
@@ -738,6 +747,116 @@ math_biome_access_sample(const int64_t theSeed, const int32_t x, const int32_t y
     }
 
     return var9;
+}
+
+typedef const struct aquifer_data {
+    int32_t startX;
+    int32_t startY;
+    int32_t startZ;
+    int32_t sizeX;
+    int32_t sizeZ;
+} aquifer_data_t;
+
+static inline __attribute__((const)) uint32_t
+math_aquifer_index(const aquifer_data_t *restrict const aquiferData, const int32_t x, const int32_t y,
+                   const int32_t z) {
+    int i = x - aquiferData->startX;
+    int j = y - aquiferData->startY;
+    int k = z - aquiferData->startZ;
+    return (j * aquiferData->sizeZ + k) * aquiferData->sizeX + i;
+}
+
+static inline __attribute__((const)) int32_t
+math_aquifer_unpackPackedX(uint32_t packed) {
+    return packed >> 8;
+}
+
+static inline __attribute__((const)) int32_t
+math_aquifer_unpackPackedY(uint32_t packed) {
+    return (packed >> 4) & 0b1111;
+}
+
+static inline __attribute__((const)) int32_t
+math_aquifer_unpackPackedZ(uint32_t packed) {
+    return packed & 0b1111;
+}
+
+static inline void
+math_aquifer_refreshDistPosIdx(const uint16_t *restrict const packedBlockPositions, uint32_t *restrict const res,
+                               const aquifer_data_t *restrict const aquiferData,
+                               const int32_t x, const int32_t y, const int32_t z) {
+    int32_t gx = (x - 5) >> 4;
+    int32_t gy = math_floorDiv(y + 1, 12) - 1;
+    int32_t gz = (z - 5) >> 4;
+    uint32_t A = UINT32_MAX;
+    uint32_t B = UINT32_MAX;
+    uint32_t C = UINT32_MAX;
+
+    uint32_t ps[12];
+
+    uint32_t index = 12; // 12 max
+    for (int32_t offY = 0; offY <= 2; ++offY) {
+        int32_t gymul = gy * 12 + offY * 12;
+        for (int32_t offZ = 0; offZ <= 1; ++offZ) {
+            int32_t gzmul = (gz + offZ) << 4;
+
+            uint32_t index0 = index - 1;
+            uint32_t posIdx0 = math_aquifer_index(aquiferData, gx, gy + offY, gz + offZ);
+            uint32_t position0 = packedBlockPositions[posIdx0];
+            int32_t dx0 = (gx << 4) + math_aquifer_unpackPackedX(position0) - x;
+            int32_t dy0 = gymul + math_aquifer_unpackPackedY(position0) - y;
+            int32_t dz0 = gzmul + math_aquifer_unpackPackedZ(position0) - z;
+            uint32_t dist_0 = dx0 * dx0 + dy0 * dy0 + dz0 * dz0;
+
+            uint32_t index1 = index - 2;
+            uint32_t posIdx1 = posIdx0 + 1;
+            uint32_t position1 = packedBlockPositions[posIdx1];
+            int32_t dx1 = ((gx + 1) << 4) + math_aquifer_unpackPackedX(position1) - x;
+            int32_t dy1 = gymul + math_aquifer_unpackPackedY(position1) - y;
+            int32_t dz1 = gzmul + math_aquifer_unpackPackedZ(position1) - z;
+            uint32_t dist_1 = dx1 * dx1 + dy1 * dy1 + dz1 * dz1;
+
+            ps[12 - index] = (dist_0 << 20) | (index0 << 16) | posIdx0;
+            ps[13 - index] = (dist_1 << 20) | (index1 << 16) | posIdx1;
+
+            index -= 2;
+        }
+    }
+
+    A = ps[0];
+    {
+        uint32_t p1 = ps[1];
+        uint32_t n11 = max(A, p1);
+        A = min(A, p1);
+        B = n11;
+    }
+    {
+        uint32_t p1 = ps[2];
+        uint32_t n11 = max(A, p1);
+        A = min(A, p1);
+
+        uint32_t n12 = max(B, n11);
+        B = min(B, n11);
+
+        C = n12;
+    }
+
+    for (uint32_t i = 3; i < 12; i ++) {
+        uint32_t p1 = ps[i];
+        if (p1 <= C) {
+            uint32_t n11 = max(A, p1);
+            A = min(A, p1);
+
+            uint32_t n12 = max(B, n11);
+            B = min(B, n11);
+
+            C = min(C, n12);
+        }
+    }
+
+    res[0] = A;
+    res[1] = B;
+    res[2] = C;
 }
 
 #pragma clang attribute pop

@@ -408,4 +408,31 @@ public class BindingsTemplate {
             Linker.Option.critical(false)
     );
 
+    // (const uint16_t *restrict const packedBlockPositions, uint32_t *restrict const res,
+    //  const aquifer_data_t *restrict const aquiferData,
+    //  const int32_t x, const int32_t y, const int32_t z)
+    public static final MethodHandle c2me_natives_aquifer_refreshDistPosIdx = NativeLoader.linker.downcallHandle(
+            FunctionDescriptor.ofVoid(
+                    ValueLayout.ADDRESS,
+                    ValueLayout.ADDRESS,
+                    ValueLayout.ADDRESS,
+                    ValueLayout.JAVA_INT,
+                    ValueLayout.JAVA_INT,
+                    ValueLayout.JAVA_INT
+            ),
+            Linker.Option.critical(true)
+    );
+
+    public static final MethodHandle c2me_natives_aquifer_refreshDistPosIdx_ptr = NativeLoader.linker.downcallHandle(
+            FunctionDescriptor.ofVoid(
+                    ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_LONG,
+                    ValueLayout.JAVA_INT,
+                    ValueLayout.JAVA_INT,
+                    ValueLayout.JAVA_INT
+            ),
+            Linker.Option.critical(true)
+    );
+
 }

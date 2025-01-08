@@ -255,7 +255,6 @@ public abstract class MixinAquiferSamplerImpl {
     }
 
     @Unique
-    @NotNull
     private void aquiferExtracted$refreshDistPosIdx(int x, int y, int z) {
         int gx = (x - 5) >> 4;
         int gy = Math.floorDiv(y + 1, 12);

@@ -1,5 +1,7 @@
 package aquifer;
 
+import com.ishland.c2me.opts.natives_math.common.BindingsTemplate;
+import natives.Base_x86_64;
 import net.minecraft.util.math.BlockPos;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -10,6 +12,10 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.infra.Blackhole;
 
+import java.lang.foreign.Arena;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
+import java.lang.invoke.MethodHandle;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -17,14 +23,20 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode({Mode.AverageTime})
 @OperationsPerInvocation(AddressingBenchmark.invocation)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
-public class AddressingBenchmark {
+public class AddressingBenchmark extends Base_x86_64 {
 
     protected static final int invocation = 16 * 16 * (320 - (-64));
+
+    public AddressingBenchmark() {
+        super(BindingsTemplate.c2me_natives_aquifer_refreshDistPosIdx_ptr, "c2me_natives_aquifer_refreshDistPosIdx");
+    }
 
     private static int c2me$expNearestSuperiorPow2(int x) { // x > 0
         // https://stackoverflow.com/questions/5242533/fast-way-to-find-exponent-of-nearest-superior-power-of-2
         return 32 - Integer.numberOfLeadingZeros(x - 1);
     }
+
+    private static final Arena ARENA = Arena.ofAuto();
 
     private final int startX = -1;
     private final int startY = -7;
@@ -34,11 +46,25 @@ public class AddressingBenchmark {
     private final int sizeY = 35;
     private final int c2me$shiftY = 4;
     private final int c2me$shiftZ = 2;
+    private final MemorySegment c2me$aquiferData = ARENA.allocate(5 * 4);
+    private final long c2me$aquiferDataAddress = c2me$aquiferData.address();
+    {
+        MemorySegment.copy(new int[] {startX, startY, startZ, sizeX, sizeZ}, 0, c2me$aquiferData, ValueLayout.JAVA_INT, 0, 5);
+    }
 
     private final long[] blockPositions = new long[sizeX * sizeZ * sizeY];
-    private final int[] c2me$packedBlockPositions = new int[sizeX * sizeZ * sizeY];
+    private final short[] c2me$packedBlockPositions = new short[sizeX * sizeZ * sizeY];
+    private final MemorySegment c2me$packedBlockPositionsSegment = ARENA.allocate(c2me$packedBlockPositions.length * 2);
+    private final long c2me$packedBlockPositionsSegmentAddress = c2me$packedBlockPositionsSegment.address();
     private final int[] c2me$blockPos = new int[((1 << c2me$shiftY) * sizeY) << 2];
     private final long[] c2me$blockPosPacked = new long[(1 << c2me$shiftY) * sizeY];
+    {
+        MemorySegment.copy(c2me$packedBlockPositions, 0, c2me$packedBlockPositionsSegment, ValueLayout.JAVA_SHORT, 0, c2me$packedBlockPositions.length);
+    }
+
+//    private final int[] c2me$packedArray = new int[3];
+    private final MemorySegment c2me$packedArraySegment = ARENA.allocate(3 * 4);
+    private final long c2me$packedArraySegmentAddress = c2me$packedArraySegment.address();
 
     {
         Random random = new Random(0xcafe);
@@ -744,19 +770,22 @@ public class AddressingBenchmark {
                 int gzmul = (gz + offZ) << 4;
 
                 int index0 = index - 1;
-                int posIdx0 = this.index(gx, gy + offY, gz + offZ);
+                int idxX = gx - this.startX;
+                int idxY = gy + offY - this.startY;
+                int idxZ = gz + offZ - this.startZ;
+                int posIdx0 = (idxY * this.sizeZ + idxZ) * this.sizeX + idxX;
                 int position0 = this.c2me$packedBlockPositions[posIdx0];
-                int dx0 = (gx << 4) + c2me$unpackPackedX(position0) - x;
-                int dy0 = gymul + c2me$unpackPackedY(position0) - y;
-                int dz0 = gzmul + c2me$unpackPackedZ(position0) - z;
+                int dx0 = (gx << 4) + (position0 >> 8) - x;
+                int dy0 = gymul + ((position0 >> 4) & 0b1111) - y;
+                int dz0 = gzmul + (position0 & 0b1111) - z;
                 int dist_0 = dx0 * dx0 + dy0 * dy0 + dz0 * dz0;
 
                 int index1 = index - 2;
                 int posIdx1 = posIdx0 + 1;
                 int position1 = this.c2me$packedBlockPositions[posIdx1];
-                int dx1 = ((gx + 1) << 4) + c2me$unpackPackedX(position1) - x;
-                int dy1 = gymul + c2me$unpackPackedY(position1) - y;
-                int dz1 = gzmul + c2me$unpackPackedZ(position1) - z;
+                int dx1 = ((gx + 1) << 4) + (position1 >> 8) - x;
+                int dy1 = gymul + ((position1 >> 4) & 0b1111) - y;
+                int dz1 = gzmul + (position1 & 0b1111) - z;
                 int dist_1 = dx1 * dx1 + dy1 * dy1 + dz1 * dz1;
 
                 int p0 = (dist_0 << 20) | (index0 << 16) | posIdx0;
@@ -924,4 +953,67 @@ public class AddressingBenchmark {
         }
     }
 
+    @Override
+    protected void doInvocation(MethodHandle handle, Blackhole bh) {
+        for (int x = 0; x < 16; x ++) {
+            for (int z = 304; z < 320; z ++) {
+                for (int y = -64; y < 320; y ++) {
+                    invokeNative0(handle, bh, x, y, z);
+                }
+            }
+        }
+    }
+
+    private void invokeNative0(MethodHandle handle, Blackhole bh, int x, int y, int z) {
+        try {
+            handle.invokeExact(c2me$packedBlockPositionsSegmentAddress, c2me$packedArraySegmentAddress, c2me$aquiferDataAddress, x, y, z);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+        int A = c2me$packedArraySegment.get(ValueLayout.JAVA_INT, 0);
+        int B = c2me$packedArraySegment.get(ValueLayout.JAVA_INT, 4);
+        int C = c2me$packedArraySegment.get(ValueLayout.JAVA_INT, 8);
+
+        int dist1 = A >> 20;
+        int dist2 = B >> 20;
+        int dist3 = C >> 20;
+        long pos1 = this.blockPositions[A&0xffff];
+        long pos2 = this.blockPositions[B&0xffff];
+        long pos3 = this.blockPositions[C&0xffff];
+
+        bh.consume(dist1);
+        bh.consume(dist2);
+        bh.consume(dist3);
+        bh.consume(0);
+        bh.consume(0);
+        bh.consume(0);
+        bh.consume(pos1);
+        bh.consume(pos2);
+        bh.consume(pos3);
+    }
+
+    @Benchmark
+    @Override
+    public void spinning(Blackhole bh) {
+        for (int x = 0; x < 16; x ++) {
+            for (int z = 304; z < 320; z ++) {
+                for (int y = -64; y < 320; y ++) {
+                    bh.consume(x);
+                    bh.consume(y);
+                    bh.consume(z);
+                    bh.consume(x);
+                    bh.consume(y);
+                    bh.consume(z);
+                    bh.consume(0L);
+                    bh.consume(0L);
+                    bh.consume(0L);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void vanilla(Blackhole bh) {
+        // unused
+    }
 }
