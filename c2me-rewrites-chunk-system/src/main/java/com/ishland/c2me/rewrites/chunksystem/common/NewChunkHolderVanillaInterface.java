@@ -3,6 +3,8 @@ package com.ishland.c2me.rewrites.chunksystem.common;
 import com.ishland.c2me.base.common.theinterface.IFastChunkHolder;
 import com.ishland.c2me.base.common.util.SneakyThrow;
 import com.ishland.flowsched.scheduler.ItemHolder;
+import com.ishland.flowsched.scheduler.StatusAdvancingScheduler;
+import com.ishland.flowsched.util.Assertions;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.server.world.ChunkHolder;
 import net.minecraft.server.world.ChunkLevelType;
@@ -30,16 +32,19 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
-import java.util.function.Function;
 
 public class NewChunkHolderVanillaInterface extends ChunkHolder implements IFastChunkHolder {
 
     private static final List<ChunkStatus> CHUNK_STATUSES = ChunkStatus.createOrderedList();
 
+    private final TheChunkSystem chunkSystem;
     private final ItemHolder<ChunkPos, ChunkState, ChunkLoadingContext, NewChunkHolderVanillaInterface> newHolder;
+    private NewChunkStatus deferredStatus = null;
+    private NewChunkStatus loadedDeferredStatus = null;
 
-    public NewChunkHolderVanillaInterface(ItemHolder<ChunkPos, ChunkState, ChunkLoadingContext, NewChunkHolderVanillaInterface> newHolder, HeightLimitView world, LightingProvider lightingProvider, PlayersWatchingChunkProvider playersWatchingChunkProvider) {
+    public NewChunkHolderVanillaInterface(TheChunkSystem chunkSystem, ItemHolder<ChunkPos, ChunkState, ChunkLoadingContext, NewChunkHolderVanillaInterface> newHolder, HeightLimitView world, LightingProvider lightingProvider, PlayersWatchingChunkProvider playersWatchingChunkProvider) {
         super(newHolder.getKey(), ChunkLevels.INACCESSIBLE, world, lightingProvider, (pos1, levelGetter, targetLevel, levelSetter) -> {}, playersWatchingChunkProvider);
+        this.chunkSystem = chunkSystem;
         this.newHolder = newHolder;
     }
 
@@ -146,9 +151,61 @@ public class NewChunkHolderVanillaInterface extends ChunkHolder implements IFast
         });
     }
 
+    /**
+     * @apiNote it is the caller's responsibility to ensure the holder is kept loaded
+     */
+    public void updateDeferredStatus(NewChunkStatus status) {
+        synchronized (this) {
+            if (this.deferredStatus == status) return;
+            if (this.deferredStatus == null) { // && status != null
+                Assertions.assertTrue(this.loadedDeferredStatus == null);
+                this.deferredStatus = status;
+                return;
+            }
+            if (status == null) { // && this.deferredStatus != null
+                if (this.loadedDeferredStatus != null) {
+                    ChunkPos pos1 = this.getPos();
+                    this.chunkSystem.removeTicket(pos1, TicketTypeExtension.VANILLA_DEFERRED_LOAD, pos1, this.loadedDeferredStatus);
+                    this.loadedDeferredStatus = null;
+                }
+                this.deferredStatus = status;
+            }
+            // both nonnull and different
+            if (this.loadedDeferredStatus != null && this.loadedDeferredStatus.ordinal() > status.ordinal()) {
+                ChunkPos pos1 = this.getPos();
+                this.chunkSystem.removeTicket(pos1, TicketTypeExtension.VANILLA_DEFERRED_LOAD, pos1, this.loadedDeferredStatus);
+                this.loadedDeferredStatus = null;
+            }
+            this.deferredStatus = status;
+        }
+    }
+
+    private void triggerDeferredLoad(NewChunkStatus requestedStatus) {
+        if (!Config.lowMemoryMode) return;
+        synchronized (this) {
+            if (this.loadedDeferredStatus != null && this.loadedDeferredStatus.ordinal() >= requestedStatus.ordinal()) {
+                return; // nothing to do
+            }
+            if (this.deferredStatus == null || this.deferredStatus.ordinal() < requestedStatus.ordinal()) {
+                return; // not deferred
+            }
+            // the holder should be valid here
+            NewChunkStatus ticketToDiscard = this.loadedDeferredStatus;
+            ChunkPos pos1 = this.getPos();
+            ItemHolder<ChunkPos, ChunkState, ChunkLoadingContext, NewChunkHolderVanillaInterface> holder1 = this.chunkSystem.addTicket(pos1, TicketTypeExtension.VANILLA_DEFERRED_LOAD, pos1, requestedStatus, StatusAdvancingScheduler.NO_OP);
+            Assertions.assertTrue(holder1 == this.newHolder);
+            if (ticketToDiscard != null) {
+                this.chunkSystem.removeTicket(pos1, TicketTypeExtension.VANILLA_DEFERRED_LOAD, pos1, ticketToDiscard);
+            }
+            this.loadedDeferredStatus = requestedStatus;
+        }
+    }
+
     @Override
     public CompletableFuture<OptionalChunk<Chunk>> load(ChunkStatus requestedStatus, ServerChunkLoadingManager chunkLoadingManager) {
-        final CompletableFuture<Void> futureForStatus = this.newHolder.getFutureForStatus0(NewChunkStatus.fromVanillaStatus(requestedStatus));
+        NewChunkStatus status = NewChunkStatus.fromVanillaStatus(requestedStatus);
+        triggerDeferredLoad(status);
+        final CompletableFuture<Void> futureForStatus = this.newHolder.getFutureForStatus0(status);
         return requestedStatus == ChunkStatus.FULL ? wrapOptionalChunkFuture(futureForStatus) : wrapOptionalChunkProtoFuture(futureForStatus);
     }
 
@@ -357,7 +414,9 @@ public class NewChunkHolderVanillaInterface extends ChunkHolder implements IFast
 
     @Override
     protected CompletableFuture<OptionalChunk<Chunk>> getOrCreateFuture(ChunkStatus status) {
-        final CompletableFuture<Void> futureForStatus = this.newHolder.getFutureForStatus0(NewChunkStatus.fromVanillaStatus(status));
+        NewChunkStatus status1 = NewChunkStatus.fromVanillaStatus(status);
+        triggerDeferredLoad(status1);
+        final CompletableFuture<Void> futureForStatus = this.newHolder.getFutureForStatus0(status1);
         return status == ChunkStatus.FULL ? this.wrapOptionalChunkFuture(futureForStatus) : this.wrapOptionalChunkProtoFuture(futureForStatus);
     }
 

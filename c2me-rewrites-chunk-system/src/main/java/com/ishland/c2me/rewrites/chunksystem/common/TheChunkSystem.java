@@ -113,7 +113,7 @@ public class TheChunkSystem extends DaemonizedStatusAdvancingScheduler<ChunkPos,
     @Override
     protected void onItemCreation(ItemHolder<ChunkPos, ChunkState, ChunkLoadingContext, NewChunkHolderVanillaInterface> holder) {
         super.onItemCreation(holder);
-        holder.getUserData().set(new NewChunkHolderVanillaInterface(holder, ((IThreadedAnvilChunkStorage) this.tacs).getWorld(), ((IThreadedAnvilChunkStorage) this.tacs).getLightingProvider(), this.tacs));
+        holder.getUserData().set(new NewChunkHolderVanillaInterface(this, holder, ((IThreadedAnvilChunkStorage) this.tacs).getWorld(), ((IThreadedAnvilChunkStorage) this.tacs).getLightingProvider(), this.tacs));
     }
 
     @Override
@@ -155,31 +155,64 @@ public class TheChunkSystem extends DaemonizedStatusAdvancingScheduler<ChunkPos,
         Assertions.assertTrue(!Thread.holdsLock(this.managedTickets));
         synchronized (this.managedTickets) {
             final int oldLevel = this.managedTickets.put(pos, level);
-            NewChunkStatus oldStatus = NewChunkStatus.fromVanillaLevel(oldLevel);
-            NewChunkStatus newStatus = NewChunkStatus.fromVanillaLevel(level);
+            NewChunkStatus oldStatus = c2me$getDeferredStatusFromVanillaLevel(oldLevel);
+            NewChunkStatus newStatus = c2me$getDeferredStatusFromVanillaLevel(level);
             final ChunkPos key = new ChunkPos(pos);
             if (oldStatus != newStatus) {
-                ChunkHolder vanillaHolder;
+                NewChunkHolderVanillaInterface vanillaHolder;
+                ItemHolder<ChunkPos, ChunkState, ChunkLoadingContext, NewChunkHolderVanillaInterface> holder;
+                boolean shouldReturnVanillaHolder;
                 if (newStatus != this.getUnloadedStatus()) {
-                    final ItemHolder<ChunkPos, ChunkState, ChunkLoadingContext, NewChunkHolderVanillaInterface> holder = this.addTicket(key, TicketTypeExtension.VANILLA_LEVEL, key, newStatus, NO_OP);
-                    vanillaHolder = holder.getUserData().get();
+                    holder = this.addTicket(key, TicketTypeExtension.VANILLA_LEVEL, key, newStatus, NO_OP);
+                    shouldReturnVanillaHolder = true;
                 } else {
                     this.managedTickets.remove(pos);
-                    vanillaHolder = null;
+                    holder = this.getHolder(key);
+                    shouldReturnVanillaHolder = false;
                 }
+                Assertions.assertTrue(holder != null, "Holder should be managed by the vanilla interface");
+                assert holder != null;
+                vanillaHolder = holder.getUserData().get();
+                if (Config.lowMemoryMode) {
+                    vanillaHolder.updateDeferredStatus(NewChunkStatus.fromVanillaLevel(level));
+                }
+
                 if (oldStatus != this.getUnloadedStatus()) {
                     this.removeTicket(key, TicketTypeExtension.VANILLA_LEVEL, key, oldStatus);
                 }
-                return vanillaHolder;
+                return shouldReturnVanillaHolder ? vanillaHolder : null;
             } else {
-                if (newStatus != this.getUnloadedStatus()) {
-                    final ItemHolder<ChunkPos, ChunkState, ChunkLoadingContext, NewChunkHolderVanillaInterface> holder = this.getHolder(key);
-                    if (holder != null) {
-                        return holder.getUserData().get();
-                    }
+                final ItemHolder<ChunkPos, ChunkState, ChunkLoadingContext, NewChunkHolderVanillaInterface> holder = this.getHolder(key);
+                NewChunkHolderVanillaInterface vanillaHolder;
+                if (holder != null) {
+                    vanillaHolder = holder.getUserData().get();
+
+                } else {
+                    vanillaHolder = null;
+                }
+                if (Config.lowMemoryMode && vanillaHolder != null) {
+                    vanillaHolder.updateDeferredStatus(NewChunkStatus.fromVanillaLevel(level));
+                }
+                if (newStatus != this.getUnloadedStatus() && vanillaHolder != null) {
+                    return vanillaHolder;
                 }
                 return null;
             }
+        }
+    }
+
+    private static NewChunkStatus c2me$getDeferredStatusFromVanillaLevel(int level) {
+        NewChunkStatus status = NewChunkStatus.fromVanillaLevel(level);
+        if (Config.lowMemoryMode) {
+            if (status == NewChunkStatus.NEW) {
+                return status;
+            } else if (status.ordinal() < NewChunkStatus.SERVER_ACCESSIBLE.ordinal()) {
+                return NewChunkStatus.DEFERRED;
+            } else {
+                return status;
+            }
+        } else {
+            return status;
         }
     }
 
