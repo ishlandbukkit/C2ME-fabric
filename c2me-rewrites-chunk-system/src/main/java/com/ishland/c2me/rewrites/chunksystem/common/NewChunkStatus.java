@@ -1,5 +1,6 @@
 package com.ishland.c2me.rewrites.chunksystem.common;
 
+import com.ishland.c2me.rewrites.chunksystem.common.statuses.Deferred;
 import com.ishland.c2me.rewrites.chunksystem.common.statuses.ReadFromDisk;
 import com.ishland.c2me.rewrites.chunksystem.common.statuses.ReadFromDiskAsync;
 import com.ishland.c2me.rewrites.chunksystem.common.statuses.ServerAccessible;
@@ -31,6 +32,7 @@ public abstract class NewChunkStatus implements ItemStatus<ChunkPos, ChunkState,
     public static final NewChunkStatus[] ALL_STATUSES;
 
     public static final NewChunkStatus NEW;
+    public static final NewChunkStatus DEFERRED;
     public static final NewChunkStatus DISK;
     private static final NewChunkStatus[] VANILLA_WORLDGEN_PIPELINE;
     public static final NewChunkStatus SERVER_ACCESSIBLE;
@@ -58,6 +60,8 @@ public abstract class NewChunkStatus implements ItemStatus<ChunkPos, ChunkState,
             }
         };
         statuses.add(NEW);
+        DEFERRED = new Deferred(statuses.size());
+        statuses.add(DEFERRED);
         DISK = Config.asyncSerialization ? new ReadFromDiskAsync(statuses.size()) : new ReadFromDisk(statuses.size());
         statuses.add(DISK);
         VANILLA_WORLDGEN_PIPELINE = new NewChunkStatus[ChunkStatus.FULL.getIndex() + 1];

@@ -69,6 +69,16 @@ public class Config {
                     """)
             .getBoolean(true, false);
 
+    public static final boolean lowMemoryMode = new ConfigSystem.ConfigAccessor()
+            .key("chunkSystem.lowMemoryMode")
+            .comment("""
+                    Whether to enable low memory mode
+                    
+                    This will attempt to aggressively unload unneeded chunks, saving memory at the cost of additional
+                    overhead when generating new chunks.
+                    """)
+            .getBoolean(false, false);
+
     public static void init() {
         // intentionally empty
     }
