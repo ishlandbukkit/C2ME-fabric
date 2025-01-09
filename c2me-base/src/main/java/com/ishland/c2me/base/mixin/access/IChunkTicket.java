@@ -6,8 +6,4 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 
 @Mixin(ChunkTicket.class)
 public interface IChunkTicket {
-
-    @Invoker
-    boolean invokeIsExpired(long currentTick);
-
 }

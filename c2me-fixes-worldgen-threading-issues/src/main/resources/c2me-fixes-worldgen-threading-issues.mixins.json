@@ -36,7 +36,6 @@
     "threading.MixinWoodlandMansionGeneratorGenerationPiece",
     "threading.MixinWoodlandMansionGeneratorMansionParameters",
     "threading.math.MixinAffineTransformation",
-    "threading.math.MixinDirectionTransformation",
     "threading_detections.random_instances.MixinWorld",
     "threading_detections.readonly_protection.MixinChunkRegion"
   ]

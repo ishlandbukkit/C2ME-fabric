@@ -18,7 +18,7 @@ import java.util.concurrent.CompletableFuture;
 @Mixin(ChunkRegion.class)
 public abstract class MixinChunkRegion implements StructureWorldAccess {
 
-    @WrapOperation(method = "setBlockState", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/world/ServerWorld;onBlockChanged(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;Lnet/minecraft/block/BlockState;)V"))
+    @WrapOperation(method = "setBlockState", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/world/ServerWorld;method_66016(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;Lnet/minecraft/block/BlockState;)V"))
     private void waitForFutureBeforeNotifyChanges(ServerWorld instance, BlockPos pos, BlockState oldBlock, BlockState newBlock, Operation<Void> operation) {
         final Chunk chunk = this.getChunk(pos);
         if (chunk instanceof ProtoChunk protoChunk) {

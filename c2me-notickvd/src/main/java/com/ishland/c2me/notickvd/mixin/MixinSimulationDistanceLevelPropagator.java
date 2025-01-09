@@ -13,11 +13,6 @@ public class MixinSimulationDistanceLevelPropagator {
         return constant + 1;
     }
 
-    @ModifyConstant(method = "getLevel(Lnet/minecraft/util/collection/SortedArraySet;)I", constant = @Constant(intValue = 34))
-    private int modifyMax1(int constant) {
-        return constant + 1;
-    }
-
     @ModifyConstant(method = "setLevel", constant = @Constant(intValue = 33))
     private int modifyMax2(int constant) {
         return constant + 1;

@@ -29,7 +29,7 @@ public class MixinChunkTicketManager {
     }
 
     @WrapOperation(method = "<init>", at = @At(value = "NEW", target = "(Lnet/minecraft/util/thread/TaskExecutor;Ljava/util/concurrent/Executor;I)Lnet/minecraft/server/world/ThrottledChunkTaskScheduler;"))
-    private ThrottledChunkTaskScheduler syncPlayerTickets(TaskExecutor<Runnable> executor, Executor dispatchExecutor, int maxConcurrentChunks, Operation<ThrottledChunkTaskScheduler> original, Executor workerExecutor, Executor mainThreadExecutor) {
+    private ThrottledChunkTaskScheduler syncPlayerTickets(TaskExecutor<Runnable> executor, Executor dispatchExecutor, int maxConcurrentChunks, Operation<ThrottledChunkTaskScheduler> original) {
         if (Config.syncPlayerTickets) {
             return original.call(executor, (Executor) Runnable::run, maxConcurrentChunks); // improve player ticket consistency
         } else {

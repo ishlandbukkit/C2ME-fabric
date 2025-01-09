@@ -3,6 +3,7 @@ package com.ishland.c2me.base.mixin.access;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
+import net.minecraft.class_10592;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ChunkTicket;
 import net.minecraft.server.world.ChunkTicketManager;
@@ -22,12 +23,12 @@ public interface IChunkTicketManager {
     Long2ObjectMap<ObjectSet<ServerPlayerEntity>> getPlayersByChunkPos();
 
     @Accessor
-    Long2ObjectOpenHashMap<SortedArraySet<ChunkTicket<?>>> getTicketsByPosition();
-
-    @Accessor
     ChunkTicketManager.NearbyChunkTicketUpdater getNearbyChunkTicketUpdater();
 
-    @Accessor
+    @Accessor("field_55590")
     SimulationDistanceLevelPropagator getSimulationDistanceTracker();
+
+    @Accessor("field_55591")
+    class_10592 getTicketStorage();
 
 }

@@ -18,7 +18,7 @@ accessible    class    net/minecraft/structure/NetherFortressGenerator$Piece
 accessible    class    net/minecraft/structure/OceanMonumentGenerator$PieceSetting
 accessible    class    net/minecraft/client/option/SimpleOption$Callbacks
 accessible    class    net/minecraft/server/world/ServerChunkLoadingManager$TicketManager
-accessible    class    net/minecraft/server/world/ChunkTicketManager$TicketDistanceLevelPropagator
+accessible    class    net/minecraft/server/world/TicketDistanceLevelPropagator
 accessible    class    net/minecraft/server/world/ServerLightingProvider$Stage
 accessible    class    net/minecraft/world/gen/densityfunction/DensityFunctionTypes$Noise
 accessible    class    net/minecraft/world/gen/densityfunction/DensityFunctionTypes$Constant

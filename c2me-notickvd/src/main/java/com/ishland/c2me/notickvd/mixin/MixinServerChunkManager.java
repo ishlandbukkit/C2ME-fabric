@@ -3,9 +3,11 @@ package com.ishland.c2me.notickvd.mixin;
 import com.ishland.c2me.base.common.theinterface.IFastChunkHolder;
 import com.ishland.c2me.base.common.util.FilteringIterable;
 import com.ishland.c2me.base.mixin.access.IChunkTicketManager;
+import com.ishland.c2me.base.mixin.access.ISimulationDistanceLevelPropagator;
 import com.ishland.c2me.notickvd.common.ChunkTicketManagerExtension;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import it.unimi.dsi.fastutil.longs.Long2ByteMap;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.entity.Entity;
 import net.minecraft.server.world.ChunkHolder;
@@ -26,8 +28,8 @@ public class MixinServerChunkManager {
 
     @WrapOperation(method = "tickChunks(Lnet/minecraft/util/profiler/Profiler;JLjava/util/List;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/world/ServerWorld;iterateEntities()Ljava/lang/Iterable;"))
     private Iterable<Entity> redirectIterateEntities(ServerWorld serverWorld, Operation<Iterable<Entity>> op) {
-        LongSet trackedChunks = ((IChunkTicketManager) this.ticketManager).getSimulationDistanceTracker().getTrackedChunks();
-        return new FilteringIterable<>(op.call(serverWorld), entity -> trackedChunks.contains(entity.getChunkPos().toLong()));
+        Long2ByteMap trackedChunks = ((ISimulationDistanceLevelPropagator) ((IChunkTicketManager) this.ticketManager).getSimulationDistanceTracker()).getLevels();
+        return new FilteringIterable<>(op.call(serverWorld), entity -> trackedChunks.containsKey(entity.getChunkPos().toLong()));
     }
 
     @Redirect(method = "broadcastUpdates", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/world/ChunkHolder;getWorldChunk()Lnet/minecraft/world/chunk/WorldChunk;"))

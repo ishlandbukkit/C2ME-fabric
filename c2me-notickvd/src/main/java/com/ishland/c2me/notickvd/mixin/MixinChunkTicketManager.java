@@ -22,16 +22,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(ChunkTicketManager.class)
 public class MixinChunkTicketManager implements ChunkTicketManagerExtension {
 
-    @Shadow private long age;
-    @Mutable
-    @Shadow @Final private SimulationDistanceLevelPropagator simulationDistanceTracker;
     @Shadow @Final private ChunkTicketManager.NearbyChunkTicketUpdater nearbyChunkTicketUpdater;
 
     @Unique
     private NoTickSystem noTickSystem;
-
-    @Unique
-    private long lastNoTickSystemTick = -1;
 
     @Inject(method = "<init>", at = @At("RETURN"))
     private void onInit(CallbackInfo ci) {
@@ -46,11 +40,6 @@ public class MixinChunkTicketManager implements ChunkTicketManagerExtension {
     @Inject(method = "handleChunkLeave", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/world/ChunkTicketManager$DistanceFromNearestPlayerTracker;updateLevel(JIZ)V", ordinal = 0, shift = At.Shift.AFTER))
     private void onHandleChunkLeave(ChunkSectionPos pos, ServerPlayerEntity player, CallbackInfo ci) {
         this.noTickSystem.removePlayerSource(pos.toChunkPos());
-    }
-
-    @Inject(method = "purgeExpiredTickets", at = @At("RETURN"))
-    private void onPurge(CallbackInfo ci) {
-        this.noTickSystem.runPurge(this.age);
     }
 
     @Inject(method = "update", at = @At("HEAD"))

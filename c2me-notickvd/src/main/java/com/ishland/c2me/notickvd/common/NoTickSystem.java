@@ -20,8 +20,6 @@ public class NoTickSystem {
 
     private final AtomicBoolean isTicking = new AtomicBoolean();
     final Executor executor = GlobalExecutors.asyncScheduler;
-    private volatile boolean pendingPurge = false;
-    private volatile long age = 0;
 
     public NoTickSystem(ServerChunkLoadingManager tacs) {
         this.playerNoTickLoader = new PlayerNoTickLoader(tacs, this);
@@ -88,11 +86,6 @@ public class NoTickSystem {
                 t.printStackTrace();
             }
         }
-    }
-
-    public void runPurge(long age) {
-        this.age = age;
-        this.pendingPurge = true;
     }
 
     public long getPendingLoadsCount() {
