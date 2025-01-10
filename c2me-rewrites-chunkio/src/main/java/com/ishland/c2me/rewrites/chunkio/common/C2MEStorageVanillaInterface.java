@@ -12,16 +12,18 @@ import org.jetbrains.annotations.Nullable;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
+import java.util.function.LongFunction;
 import java.util.function.Supplier;
 
 public class C2MEStorageVanillaInterface extends StorageIoWorker implements IDirectStorage {
 
     private final C2MEStorageThread backend;
 
-    public C2MEStorageVanillaInterface(StorageKey arg, Path path, boolean dsync) {
+    public C2MEStorageVanillaInterface(StorageKey arg, Path path, boolean dsync, LongFunction<Executor> backgroundExecutorSupplier) {
         super(arg, path, dsync);
-        this.backend = new C2MEStorageThread(arg, path, dsync);
+        this.backend = new C2MEStorageThread(arg, path, dsync, backgroundExecutorSupplier);
     }
 
     @Override

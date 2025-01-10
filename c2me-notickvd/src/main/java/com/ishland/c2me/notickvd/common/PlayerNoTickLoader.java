@@ -114,16 +114,6 @@ public class PlayerNoTickLoader {
         }
 
         this.tickFutures();
-
-        {
-            long pendingLoadsCount = 0L;
-            ObjectBidirectionalIterator<Long2ReferenceMap.Entry<ChunkIterator>> iterator = this.iterators.long2ReferenceEntrySet().fastIterator();
-            while (iterator.hasNext()) {
-                Long2ReferenceMap.Entry<ChunkIterator> entry = iterator.next();
-                pendingLoadsCount += entry.getValue().remaining();
-            }
-            this.pendingLoadsCountSnapshot = pendingLoadsCount;
-        }
     }
 
     private void clearTickets() {
@@ -142,6 +132,16 @@ public class PlayerNoTickLoader {
 
         if (this.closing.get()) return;
         while (this.chunkLoadFutures.size() < Config.maxConcurrentChunkLoads && this.addOneTicket());
+
+        {
+            long pendingLoadsCount = 0L;
+            ObjectBidirectionalIterator<Long2ReferenceMap.Entry<ChunkIterator>> iterator = this.iterators.long2ReferenceEntrySet().fastIterator();
+            while (iterator.hasNext()) {
+                Long2ReferenceMap.Entry<ChunkIterator> entry = iterator.next();
+                pendingLoadsCount += entry.getValue().remaining();
+            }
+            this.pendingLoadsCountSnapshot = pendingLoadsCount;
+        }
     }
 
     private boolean addOneTicket() {

@@ -60,7 +60,7 @@ public class ThreadInstrumentation {
                 StringBuilder builder = new StringBuilder();
                 builder.append("Task trace for thread \"").append(name).append("\" Id=").append(tid).append(" (obtained on a best-effort basis)\n");
                 for (RunningWork runningWork : runningWorks) {
-                    builder.append(runningWork.toString().indent(4)).append("\n");
+                    builder.append(runningWork.toString().indent(4)); // newline included in indent()
                 }
                 return builder.toString();
             }

@@ -15,7 +15,7 @@ public class MixinChunkPosKeyedStorage {
 
     @Redirect(method = "<init>", at = @At(value = "NEW", target = "(Lnet/minecraft/world/storage/StorageKey;Ljava/nio/file/Path;Z)Lnet/minecraft/world/storage/StorageIoWorker;"))
     private StorageIoWorker redirectStorageIoWorker(StorageKey arg, Path path, boolean bl) {
-        return new C2MEStorageVanillaInterface(arg, path, bl);
+        return new C2MEStorageVanillaInterface(arg, path, bl, null);
     }
 
 }

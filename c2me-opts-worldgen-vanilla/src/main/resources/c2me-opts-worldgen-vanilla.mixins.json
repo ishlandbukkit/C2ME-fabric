@@ -5,8 +5,8 @@
   "plugin": "com.ishland.c2me.opts.worldgen.vanilla.MixinPlugin",
   "mixins": [
     "aquifer.MixinAquiferSamplerImpl",
-    "aquifer.MixinNoiseChunkGenerator",
     "structure_weight_sampler.MixinStructureWeightSampler",
-    "the_end_biome_cache.MixinTheEndBiomeSource"
+    "the_end_biome_cache.MixinTheEndBiomeSource",
+    "tlcache.MixinBlock"
   ]
 }
