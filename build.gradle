@@ -35,7 +35,13 @@ configure(allprojects) {
         if (it.plugins.hasPlugin("fabric-loom")) {
             afterEvaluate {
                 migrateMappings.configure {
-                    outputDir = project.file("src/main/java")
+                    outputDir = project.file("build/remappedSrc")
+                    doLast {
+                        copy {
+                            from project.file("build/remappedSrc")
+                            into project.file("src/main/java")
+                        }
+                    }
                 }
             }
         }
