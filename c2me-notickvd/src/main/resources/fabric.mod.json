@@ -3,7 +3,7 @@
   "id": "c2me-notickvd",
   "version": "${version}",
   "name": "Concurrent Chunk Management Engine (No Tick View Distance)",
-  "description": "An faster alternative implementation of simulation distance supporting view distance up to 248 chunks",
+  "description": "Faster alternative implementation of simulation distance supporting view distance up to 65535 chunks",
   "environment": "*",
   "mixins": [
     "c2me-notickvd.mixins.json"
