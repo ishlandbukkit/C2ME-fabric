@@ -1,7 +1,7 @@
 package com.ishland.c2me.base.mixin.access;
 
 import it.unimi.dsi.fastutil.longs.Long2ByteMap;
-import net.minecraft.world.SimulationDistanceLevelPropagator;
+import net.minecraft.server.world.SimulationDistanceLevelPropagator;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 

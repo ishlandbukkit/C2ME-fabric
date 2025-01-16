@@ -1,6 +1,6 @@
 package com.ishland.c2me.tests.testmod.mixin.what;
 
-import net.minecraft.server.world.ChunkTicketManager;
+import net.minecraft.server.world.ChunkLevelManager;
 import net.minecraft.util.thread.ThreadExecutor;
 import org.spongepowered.asm.mixin.Dynamic;
 import org.spongepowered.asm.mixin.Final;
@@ -12,8 +12,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.concurrent.Executor;
 
-@Mixin(ChunkTicketManager.class)
-public class MixinChunkTicketManager {
+@Mixin(ChunkLevelManager.class)
+public class MixinChunkLevelManager {
 
     @Shadow @Final private Executor mainThreadExecutor;
 

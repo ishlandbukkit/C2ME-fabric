@@ -5,8 +5,8 @@
   "plugin": "com.ishland.c2me.base.common.ModuleMixinPlugin",
   "mixins": [
     "MixinChunkHolder",
-    "MixinChunkTicketManager",
-    "MixinChunkTicketManagerNearbyChunkTicketUpdater",
+    "MixinChunkLevelManager",
+    "MixinChunkLevelManagerNearbyChunkTicketUpdater",
     "MixinMinecraftServer",
     "MixinPlayerManager",
     "MixinServerAccessibleChunkSending",

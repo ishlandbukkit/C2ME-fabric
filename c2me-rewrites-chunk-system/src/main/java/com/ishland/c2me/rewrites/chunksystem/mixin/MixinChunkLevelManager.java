@@ -5,7 +5,7 @@ import com.ishland.c2me.rewrites.chunksystem.common.Config;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.server.world.ChunkHolder;
-import net.minecraft.server.world.ChunkTicketManager;
+import net.minecraft.server.world.ChunkLevelManager;
 import net.minecraft.server.world.ThrottledChunkTaskScheduler;
 import net.minecraft.util.thread.TaskExecutor;
 import org.spongepowered.asm.mixin.Dynamic;
@@ -15,12 +15,12 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 
 import java.util.concurrent.Executor;
 
-@Mixin(value = ChunkTicketManager.class, priority = 1051)
-public class MixinChunkTicketManager {
+@Mixin(value = ChunkLevelManager.class, priority = 1051)
+public class MixinChunkLevelManager {
 
     @Dynamic
     @TargetHandler(
-            mixin = "com.ishland.vmp.mixins.ticketsystem.ticketpropagator.MixinChunkTicketManager",
+            mixin = "com.ishland.vmp.mixins.ticketsystem.ticketpropagator.MixinChunkLevelManager",
             name = "tickTickets"
     )
     @Redirect(method = "@MixinSquared:Handler", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/world/ChunkHolder;getLevel()I"), require = 0)

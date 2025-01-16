@@ -1,6 +1,6 @@
 package com.ishland.c2me.notickvd.common;
 
-import com.ishland.c2me.base.mixin.access.IChunkTicketManager;
+import com.ishland.c2me.base.mixin.access.IChunkLevelManager;
 import com.ishland.c2me.notickvd.common.iterators.ChunkIterator;
 import com.ishland.c2me.notickvd.common.iterators.SpiralIterator;
 import com.ishland.c2me.rewrites.chunksystem.common.ChunkLoadingContext;
@@ -24,7 +24,6 @@ import net.minecraft.server.world.ServerChunkLoadingManager;
 import net.minecraft.util.math.ChunkPos;
 import org.slf4j.Logger;
 
-import java.util.Comparator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.LongFunction;
@@ -34,7 +33,7 @@ public class PlayerNoTickLoader {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     public static final ItemTicket.TicketType TICKET_TYPE = new ItemTicket.TicketType("c2me:notickvd");
-    public static final ChunkTicketType VANILLA_TICKET_TYPE = new ChunkTicketType(0, false, ChunkTicketType.class_10558.LOADING);
+    public static final ChunkTicketType VANILLA_TICKET_TYPE = new ChunkTicketType(0, false, ChunkTicketType.Use.LOADING);
 
     private final ServerChunkLoadingManager tacs;
     private final NoTickSystem noTickSystem;
@@ -185,7 +184,7 @@ public class PlayerNoTickLoader {
                 NewChunkStatus.SERVER_ACCESSIBLE_CHUNK_SENDING,
                 StatusAdvancingScheduler.NO_OP
         );
-        this.noTickSystem.mainBeforeTicketTicks.add(() -> ((IChunkTicketManager) this.tacs.getTicketManager()).getTicketStorage().method_66358(VANILLA_TICKET_TYPE, pos, 0));
+        this.noTickSystem.mainBeforeTicketTicks.add(() -> ((IChunkLevelManager) this.tacs.getLevelManager()).getTicketManager().addTicket(VANILLA_TICKET_TYPE, pos, 0));
         return holder.getFutureForStatus(NewChunkStatus.SERVER_ACCESSIBLE);
     }
 
@@ -197,7 +196,7 @@ public class PlayerNoTickLoader {
                 pos,
                 NewChunkStatus.SERVER_ACCESSIBLE_CHUNK_SENDING
         );
-        this.noTickSystem.mainBeforeTicketTicks.add(() -> ((IChunkTicketManager) this.tacs.getTicketManager()).getTicketStorage().method_66373(VANILLA_TICKET_TYPE, pos, 0));
+        this.noTickSystem.mainBeforeTicketTicks.add(() -> ((IChunkLevelManager) this.tacs.getLevelManager()).getTicketManager().removeTicket(VANILLA_TICKET_TYPE, pos, 0));
     }
 
     public long getPendingLoadsCount() {

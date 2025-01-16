@@ -1,7 +1,8 @@
 package com.ishland.c2me.notickvd.mixin;
 
 import com.ishland.c2me.base.mixin.access.IServerChunkManager;
-import com.ishland.c2me.notickvd.common.ChunkTicketManagerExtension;
+import com.ishland.c2me.base.mixin.access.IThreadedAnvilChunkStorage;
+import com.ishland.c2me.notickvd.common.ChunkLevelManagerExtension;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import org.spongepowered.asm.mixin.Mixin;
@@ -18,7 +19,7 @@ public abstract class MixinMinecraftServer {
     @Inject(method = "shutdown", at = @At(value = "INVOKE_STRING", target = "Lorg/slf4j/Logger;info(Ljava/lang/String;)V", args = "ldc=Saving worlds"))
     private void stopNoTickVD(CallbackInfo ci) {
         for (ServerWorld world : this.getWorlds()) {
-            ((ChunkTicketManagerExtension) ((IServerChunkManager) world.getChunkManager()).getTicketManager()).c2me$closeNoTickVD();
+            ((ChunkLevelManagerExtension) ((IThreadedAnvilChunkStorage) world.getChunkManager().chunkLoadingManager).getLevelManager()).c2me$closeNoTickVD();
         }
     }
 

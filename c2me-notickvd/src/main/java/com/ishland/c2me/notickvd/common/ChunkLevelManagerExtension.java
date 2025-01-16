@@ -1,6 +1,6 @@
 package com.ishland.c2me.notickvd.common;
 
-public interface ChunkTicketManagerExtension {
+public interface ChunkLevelManagerExtension {
 
     long c2me$getPendingLoadsCount();
 

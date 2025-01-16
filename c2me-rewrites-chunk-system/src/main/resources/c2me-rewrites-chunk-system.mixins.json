@@ -6,7 +6,7 @@
   "mixins": [
     "MixinChunkGenerator",
     "MixinChunkHolder",
-    "MixinChunkTicketManager",
+    "MixinChunkLevelManager",
     "MixinChunkTicketManagerTicketDistanceLevelPropagator",
     "MixinMinecraftServer",
     "MixinNoiseChunkGenerator",

@@ -1,7 +1,7 @@
 accessWidener v1 named
 
-accessible    class    net/minecraft/server/world/ChunkTicketManager$NearbyChunkTicketUpdater
-accessible    class    net/minecraft/server/world/ChunkTicketManager$DistanceFromNearestPlayerTracker
+accessible    class    net/minecraft/server/world/ChunkLevelManager$NearbyChunkTicketUpdater
+accessible    class    net/minecraft/server/world/ChunkLevelManager$DistanceFromNearestPlayerTracker
 accessible    class    net/minecraft/server/world/ServerChunkManager$MainThreadExecutor
 accessible    class    net/minecraft/world/storage/StorageIoWorker$Result
 accessible    class    net/minecraft/world/gen/surfacebuilder/MaterialRules$MaterialRuleContext
@@ -17,7 +17,7 @@ accessible    class    net/minecraft/structure/NetherFortressGenerator$PieceData
 accessible    class    net/minecraft/structure/NetherFortressGenerator$Piece
 accessible    class    net/minecraft/structure/OceanMonumentGenerator$PieceSetting
 accessible    class    net/minecraft/client/option/SimpleOption$Callbacks
-accessible    class    net/minecraft/server/world/ServerChunkLoadingManager$TicketManager
+accessible    class    net/minecraft/server/world/ServerChunkLoadingManager$LevelManager
 accessible    class    net/minecraft/server/world/TicketDistanceLevelPropagator
 accessible    class    net/minecraft/server/world/ServerLightingProvider$Stage
 accessible    class    net/minecraft/world/gen/densityfunction/DensityFunctionTypes$Noise

@@ -74,4 +74,7 @@ public interface IThreadedAnvilChunkStorage {
     @Accessor
     PointOfInterestStorage getPointOfInterestStorage();
 
+    @Accessor
+    ServerChunkLoadingManager.LevelManager getLevelManager();
+
 }

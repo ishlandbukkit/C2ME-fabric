@@ -1,6 +1,6 @@
 package com.ishland.c2me.notickvd.mixin;
 
-import net.minecraft.world.SimulationDistanceLevelPropagator;
+import net.minecraft.server.world.SimulationDistanceLevelPropagator;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.ModifyConstant;

@@ -64,7 +64,7 @@ public class PreGenTask {
             Math.max(1,Runtime.getRuntime().availableProcessors() - 1),
             new ThreadFactoryBuilder().setDaemon(true).setPriority(Thread.NORM_PRIORITY - 2).setNameFormat("locator-%d").build()
     );
-    private static final ChunkTicketType TICKET = new ChunkTicketType(0, false, ChunkTicketType.class_10558.LOADING);
+    private static final ChunkTicketType TICKET = new ChunkTicketType(0, false, ChunkTicketType.Use.LOADING);
 
     private static final int SEARCH_RADIUS = 512 * 16;
 
@@ -246,12 +246,12 @@ public class PreGenTask {
 
     private static CompletableFuture<Void> getChunkAtAsync(ServerWorld world, ChunkPos pos) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-        world.getChunkManager().method_66009(TICKET, pos, 0);
+        world.getChunkManager().addTicket(TICKET, pos, 0);
         ((IServerChunkManager) world.getChunkManager()).invokeUpdateChunks();
         final ChunkHolder chunkHolder = ((IThreadedAnvilChunkStorage) world.getChunkManager().chunkLoadingManager).invokeGetChunkHolder(pos.toLong());
         Preconditions.checkNotNull(chunkHolder, "chunkHolder is null");
         chunkHolder.getAccessibleFuture().thenAcceptAsync(either -> {
-            world.getChunkManager().method_66010(TICKET, pos, 0);
+            world.getChunkManager().removeTicket(TICKET, pos, 0);
             if (either.isPresent())
                 future.complete(null);
             else
