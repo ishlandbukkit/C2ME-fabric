@@ -14,7 +14,6 @@
     "MixinSerializingRegionBasedStorage",
     "MixinServerChunkManager",
     "MixinThreadedAnvilChunkStorage",
-    "MixinWorldChunk",
     "async_serialization.MixinBlender",
     "async_serialization.MixinChunkRegion",
     "async_serialization.MixinChunkSerializer",

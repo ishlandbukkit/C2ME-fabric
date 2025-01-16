@@ -1,5 +1,6 @@
 package com.ishland.c2me.notickvd.mixin;
 
+import com.google.common.collect.ImmutableList;
 import com.ishland.c2me.base.common.threadstate.ThreadInstrumentation;
 import com.ishland.c2me.base.mixin.access.IThreadedAnvilChunkStorage;
 import com.ishland.c2me.rewrites.chunksystem.common.ChunkLoadingContext;
@@ -98,9 +99,16 @@ public class MixinServerAccessibleChunkSending {
         }
         return CompletableFuture.runAsync(() -> {
             try (var ignored = ThreadInstrumentation.getCurrent().begin(new ChunkTaskWork(context, (ServerAccessibleChunkSending) (Object) this, true))) {
-                ServerWorld serverWorld = ((IThreadedAnvilChunkStorage) context.tacs()).getWorld();
-                for (BlockPos blockPos : blocksToRemove) {
-                    serverWorld.setBlockState(blockPos, Blocks.AIR.getDefaultState(), Block.NO_REDRAW | Block.FORCE_STATE);
+                if (Config.suppressGhostMushrooms) {
+                    ServerWorld serverWorld = ((IThreadedAnvilChunkStorage) context.tacs()).getWorld();
+                    ChunkState state = context.holder().getItem().get();
+                    Chunk chunk = state.chunk();
+                    for (BlockPos blockPos : blocksToRemove) {
+                        serverWorld.setBlockState(blockPos, Blocks.AIR.getDefaultState(), Block.NO_REDRAW | Block.FORCE_STATE);
+                    }
+                    for (BlockPos blockPos2 : ImmutableList.copyOf(chunk.getBlockEntityPositions())) {
+                        chunk.getBlockEntity(blockPos2);
+                    }
                 }
                 sendChunkToPlayer(context.tacs(), context.holder());
             }
