@@ -147,10 +147,6 @@ public class ReadFromDiskAsync extends ReadFromDisk {
                         worldChunk.setLoadedToWorld(false);
                     }
 
-                    if (loadedToWorld.get() && ModStatuses.fabric_lifecycle_events_v1 && chunk instanceof WorldChunk worldChunk) {
-                        LifecycleEventInvoker.invokeChunkUnload(((IThreadedAnvilChunkStorage) context.tacs()).getWorld(), worldChunk);
-                    }
-
                     if ((context.holder().getFlags() & ItemHolder.FLAG_BROKEN) != 0 && chunk instanceof ProtoChunk) { // do not save broken ProtoChunks
                         LOGGER.warn("Not saving partially generated broken chunk {}", context.holder().getKey());
                         return CompletableFuture.completedStage((Void) null);
@@ -166,7 +162,19 @@ public class ReadFromDiskAsync extends ReadFromDisk {
                 .thenAcceptAsync(unused -> {
                     Chunk chunk = context.holder().getItem().get().chunk();
                     if (chunk instanceof WrapperProtoChunk protoChunk) chunk = protoChunk.getWrappedChunk();
+
+                    if (context.holder().getTargetStatus().ordinal() >= this.ordinal()) { // saving cancelled late
+                        if (chunk instanceof WorldChunk worldChunk) {
+                            worldChunk.setLoadedToWorld(loadedToWorld.get());
+                        }
+                        cancellable.cancel();
+                        throw new CancellationException();
+                    }
+
                     if (loadedToWorld.get() && chunk instanceof WorldChunk worldChunk) {
+                        if (ModStatuses.fabric_lifecycle_events_v1) {
+                            LifecycleEventInvoker.invokeChunkUnload(((IThreadedAnvilChunkStorage) context.tacs()).getWorld(), worldChunk);
+                        }
                         ((IThreadedAnvilChunkStorage) context.tacs()).getWorld().unloadEntities(worldChunk);
                     }
 
