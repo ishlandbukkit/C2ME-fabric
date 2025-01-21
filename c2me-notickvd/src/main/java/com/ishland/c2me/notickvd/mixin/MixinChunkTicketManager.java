@@ -79,7 +79,7 @@ public class MixinChunkTicketManager implements ChunkTicketManagerExtension {
      */
     @Overwrite
     public void setWatchDistance(int viewDistance) {
-        this.noTickSystem.setNoTickViewDistance(viewDistance);
+        this.noTickSystem.setNoTickViewDistance(viewDistance + 1);
     }
 
     @Override
