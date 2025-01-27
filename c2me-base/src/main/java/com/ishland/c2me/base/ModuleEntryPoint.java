@@ -36,6 +36,16 @@ public class ModuleEntryPoint {
                     """.indent(1))
             .getString(DEFAULT_EXPRESSION, DEFAULT_EXPRESSION);
 
+    public static final long threadPoolPriority = new ConfigSystem.ConfigAccessor()
+            .key("threadPoolPriority")
+            .comment("""
+                    Sets the thread priority for worker threads
+                    
+                    References:
+                    - https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Thread.html#setPriority(int)
+                    """)
+            .getLong(Thread.NORM_PRIORITY - 1, Thread.NORM_PRIORITY - 1, ConfigSystem.LongChecks.POSITIVE_VALUES_ONLY);
+
     public static final boolean disableLoggingShutdownHook = new ConfigSystem.ConfigAccessor()
             .key("fixes.disableLoggingShutdownHook")
             .comment("""
