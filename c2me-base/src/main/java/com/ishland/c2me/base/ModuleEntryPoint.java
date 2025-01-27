@@ -18,13 +18,10 @@ public class ModuleEntryPoint {
                         1,
                         min(
                             if( is_windows,
-                                (cpus / 1.6 - 2),
-                                (cpus / 1.2 - 2)
-                            )  - if(is_client, 2, 0),
-                            if( is_j9vm,
-                                ( ( mem_gb - (if(is_client, 0.6, 0.2)) ) / 0.4 ),
-                                ( ( mem_gb - (if(is_client, 1.2, 0.6)) ) / 0.6 )
-                            )
+                                (cpus / 1.6),
+                                (cpus / 1.3)
+                            )  - if(is_client, 1, 0),
+                            ( ( mem_gb - (if(is_client, 1.0, 0.5)) ) / 0.6 )
                         )
                     )
                 \040""";
