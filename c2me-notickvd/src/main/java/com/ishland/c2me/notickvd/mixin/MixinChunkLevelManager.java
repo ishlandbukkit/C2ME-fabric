@@ -66,7 +66,7 @@ public class MixinChunkLevelManager implements ChunkLevelManagerExtension {
      */
     @Overwrite
     public void setWatchDistance(int viewDistance) {
-        this.noTickSystem.setNoTickViewDistance(viewDistance);
+        this.noTickSystem.setNoTickViewDistance(viewDistance + 1);
     }
 
     @Override

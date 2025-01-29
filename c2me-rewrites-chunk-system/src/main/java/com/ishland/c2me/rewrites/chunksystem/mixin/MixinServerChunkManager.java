@@ -15,6 +15,7 @@ import net.minecraft.world.chunk.WrapperProtoChunk;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -37,6 +38,8 @@ public abstract class MixinServerChunkManager {
 
     @Shadow
     protected abstract @Nullable ChunkHolder getChunkHolder(long pos);
+
+    @Shadow public abstract int getLoadedChunkCount();
 
     @Inject(method = "getChunk(IILnet/minecraft/world/chunk/ChunkStatus;Z)Lnet/minecraft/world/chunk/Chunk;", at = @At("HEAD"), cancellable = true)
     private void shortcutGetChunk(int x, int z, ChunkStatus leastStatus, boolean create, CallbackInfoReturnable<Chunk> cir) {
@@ -71,6 +74,15 @@ public abstract class MixinServerChunkManager {
     @Redirect(method = "isMissingForLevel", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/world/ChunkHolder;getLevel()I"))
     private int replaceLevel(ChunkHolder instance) {
         return ((IChunkSystemAccess) this.chunkLoadingManager).c2me$getTheChunkSystem().vanillaIf$getManagedLevel(instance.getPos().toLong());
+    }
+
+    /**
+     * @author ishland
+     * @reason add debug string
+     */
+    @Overwrite
+    public String getDebugString() {
+        return Integer.toString(((IChunkSystemAccess) this.chunkLoadingManager).c2me$getTheChunkSystem().itemCount()) + ", " + Integer.toString(this.getLoadedChunkCount());
     }
 
 }

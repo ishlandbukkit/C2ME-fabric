@@ -64,7 +64,6 @@ public class PlayerNoTickLoader {
 
     public void setViewDistance(int viewDistance) {
         this.viewDistance = viewDistance;
-        this.dirtyManagedChunks = true;
         this.recreateIterators = true;
     }
 
